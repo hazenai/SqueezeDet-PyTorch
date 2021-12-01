@@ -120,62 +120,33 @@ class BaseDataset(torch.utils.data.Dataset):
         else:
             image, image_meta, boxes = resize(image, image_meta, self.input_size, boxes=boxes)
 
-        #print("after_resize: ",boxes)
+        # if boxes is not None:
+        #     if self.phase == "train":
+        #         prob = random.random()
+        #         if prob < 0.7:
+        #             image = transforms.ColorJitter(brightness=(0.6,1.3), contrast=(0.6, 1.3),
+        #                                   saturation=(0.6, 1.3), hue=(-0.3, 0.3)) (image)
+        #             boxes_aug = []
+        #             for box in boxes:
+        #                 boxes_aug.append(BoundingBox(box[0],box[1],box[2],box[3]))
+        #             boxes_augmented = BoundingBoxesOnImage(boxes_aug,shape=image.size)
+        #             image_aug, bbs_aug = self.seq(image=np.array(image), bounding_boxes=boxes_augmented)
+        #             bbs_aug = bbs_aug.remove_out_of_image(fully=True, partly=True).clip_out_of_image()
+        #             image_aug = Image.fromarray(image_aug)
+        #             image = image_aug
+        #             boxes = np.zeros((len(bbs_aug.bounding_boxes),4))
+        #             for i in range(len(bbs_aug.bounding_boxes)):
+        #                 boxes[i]= [bbs_aug.bounding_boxes[i].x1,bbs_aug.bounding_boxes[i].y1,
+        #                             bbs_aug.bounding_boxes[i].x2,bbs_aug.bounding_boxes[i].y2]
+        #             class_ids = np.zeros((len(bbs_aug.bounding_boxes),), dtype=int)   #### chaipi
 
-        if boxes is not None:
-            # boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., image_meta['orig_size'][0] - 1.)
-            # boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., image_meta['orig_size'][1] - 1.) 
-            if self.phase == "train":
-                # p = random.random()
-                # if p < 0.6:
-                #     if "filtered" not in image_meta['image_id']:
-                #         image,boxes = synthetic_plates(image, image_meta, 1, torch.from_numpy(boxes))
-                #         boxes = boxes.numpy()
-                prob = random.random()
-                if prob < 0.7:
-                    image = transforms.ColorJitter(brightness=(0.6,1.3), contrast=(0.6, 1.3),
-                                          saturation=(0.6, 1.3), hue=(-0.3, 0.3)) (image)
-                    # image = Image.fromarray(self.seq(image=np.array(image)))
-                    boxes_aug = []
-                    for box in boxes:
-                        boxes_aug.append(BoundingBox(box[0],box[1],box[2],box[3]))
-                    boxes_augmented = BoundingBoxesOnImage(boxes_aug,shape=image.size)
-                    image_aug, bbs_aug = self.seq(image=np.array(image), bounding_boxes=boxes_augmented)
-                    bbs_aug = bbs_aug.remove_out_of_image(fully=True, partly=True).clip_out_of_image()
-                    image_aug = Image.fromarray(image_aug)
-                    image = image_aug
-                    boxes = np.zeros((len(bbs_aug.bounding_boxes),4))
-                    for i in range(len(bbs_aug.bounding_boxes)):
-                        boxes[i]= [bbs_aug.bounding_boxes[i].x1,bbs_aug.bounding_boxes[i].y1,
-                                    bbs_aug.bounding_boxes[i].x2,bbs_aug.bounding_boxes[i].y2]
-                    class_ids = np.zeros((len(bbs_aug.bounding_boxes),), dtype=int)   #### chaipi
-                    # class_ids = np.zeros((len(boxes),), dtype=int)
-
-
-            # boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., image_meta['orig_size'][0] - 1.)
-            # boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., image_meta['orig_size'][1] - 1.)
-
-            # print("after_clip: ",boxes)
-            # print(image_meta['orig_size'][1])
-
-
-            if not np.all(boxes[:, 0] < boxes[:, 2]) or not np.all(boxes[:, 1] < boxes[:, 3]):
-                boxes = None
+        #     if not np.all(boxes[:, 0] < boxes[:, 2]) or not np.all(boxes[:, 1] < boxes[:, 3]):
+        #         boxes = None
     
 
         image = transforms.Grayscale(num_output_channels=3) (image)
 
-        # image_1 = image.copy()
-        # img = ImageDraw.Draw(image_1)
-        # if boxes is not None:
-        #     for box in boxes:
-        #         shape = [(box[0],box[1]),(box[2],box[3])]
-        #         img.rectangle(shape, outline ="green")
-        
-        # image_1.save('./tr/'+image_meta['image_id']+'.jpg')
-
         image = transforms.ToTensor()(image)
-        # image = (image*2) - 1
         return image, image_meta, boxes, class_ids
 
     def prepare_annotations(self, class_ids, boxes):
