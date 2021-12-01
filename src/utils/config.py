@@ -13,7 +13,7 @@ class Config(object):
                                  help='coco | kitti | yolo' )
         self.parser.add_argument('--load_model', default='',
                                  help='path to pre-trained model')
-        self.parser.add_argument('--debug', type=int, default=0,
+        self.parser.add_argument('--debug', type=int, default=2,
                                  help='0: show nothing\n'
                                       '1: visualize pre-processed image and boxes\n'
                                       '2: visualize detections.')
@@ -104,7 +104,7 @@ class Config(object):
         cfg.debug_dir = os.path.join(cfg.save_dir, 'debug')
 
         if cfg.mode != 'train' and len(cfg.gpus) > 1:
-            # print('Only single GPU is supported in {} mode.'.format(cfg.mode))
+            print('Only single GPU is supported in {} mode.'.format(cfg.mode))
             with open(cfg.log_file, 'a+') as file:
                 file.write('Only single GPU is supported in {} mode.'.format(cfg.mode)+'\n')
             cfg.gpus = [cfg.gpus[0]]
@@ -119,11 +119,11 @@ class Config(object):
             if i < rest_batch_size % (len(cfg.gpus) - 1):
                 slave_chunk_size += 1
             cfg.chunk_sizes.append(slave_chunk_size)
-        # print('training chunk_sizes:', cfg.chunk_sizes)
+        print('training chunk_sizes:', cfg.chunk_sizes)
         with open(cfg.log_file, 'a+') as file:
             file.write('training chunk_sizes:'+ str(cfg.chunk_sizes) + '\n')
 
-        # print('The results will be saved to ', cfg.save_dir)
+        print('The results will be saved to ', cfg.save_dir)
         with open(cfg.log_file, 'a+') as file:
             file.write('The results will be saved to ' + cfg.save_dir + '\n')
         return cfg
@@ -146,7 +146,7 @@ class Config(object):
         for name in sorted(names):
             if not name.startswith('_'):
                 msg = '{:<30} {}'.format(name, getattr(cfg, name))
-                # print(msg)
+                print(msg)
                 with open(cfg.log_file, 'a+') as file:
                     file.write(msg + '\n')
                 

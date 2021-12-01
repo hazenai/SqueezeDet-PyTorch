@@ -44,8 +44,8 @@ class SqueezeDetBase(nn.Module):
                 Fire(384, 48, 192, 192),
                 Fire(384, 64, 256, 256),
                 Fire(512, 64, 256, 256),
-                Fire(512, 96, 384, 384),
-                Fire(768, 96, 384, 384)
+                # Fire(512, 96, 384, 384),
+                # Fire(768, 96, 384, 384)
             )
         elif cfg.arch == 'squeezedetplus':
             self.features = nn.Sequential(
@@ -70,7 +70,7 @@ class SqueezeDetBase(nn.Module):
 
         self.dropout = nn.Dropout(cfg.dropout_prob, inplace=True) \
             if cfg.dropout_prob > 0 else None
-        self.convdet = nn.Conv2d(768 if cfg.arch == 'squeezedet' else 512,
+        self.convdet = nn.Conv2d(512 if cfg.arch == 'squeezedet' else 512,
                                  cfg.anchors_per_grid * (cfg.num_classes + 5),
                                  kernel_size=3, padding=1)
 

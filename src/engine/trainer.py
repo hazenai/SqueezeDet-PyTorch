@@ -60,7 +60,7 @@ class Trainer(object):
 
             msg += '| data {:.1f}ms | net {:.1f}ms'.format(1000. * data_timer.val, 1000. * net_timer.val)
             if iter_id % self.cfg.print_interval == 0:
-                # print(msg)
+                print(msg)
                 with open(cfg.log_file, 'a+') as file:
                     file.write(msg + '\n')
 

@@ -69,7 +69,7 @@ def train(cfg):
             logger.update(val_stats, phase='val', epoch=epoch, cfg=cfg)
 
             if not cfg.no_eval:
-                aps = eval_dataset(val_dataset, model, cfg)
+                aps = eval_dataset(val_dataset, save_path, cfg)
                 logger.update(aps, phase='val', epoch=epoch, cfg=cfg)
 
             value = val_stats['loss'] if cfg.no_eval else aps['mAP']
