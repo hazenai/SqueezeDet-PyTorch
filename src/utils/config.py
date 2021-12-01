@@ -14,7 +14,7 @@ class Config(object):
         self.parser.add_argument('--load_model', default='',
                                  help='path to pre-trained model')
         self.parser.add_argument('--debug', type=int, default=2,
-                                 help='0: show nothing\n'
+                                 help='2: show nothing\n'
                                       '1: visualize pre-processed image and boxes\n'
                                       '2: visualize detections.')
         self.parser.add_argument('--exp_id', default='default')
@@ -34,7 +34,7 @@ class Config(object):
                                  help='weight decay of SGD.')
         self.parser.add_argument('--grad_norm', type=float, default=5.,
                                  help='max norm of the gradients.')
-        self.parser.add_argument('--num_epochs', type=int, default=100,
+        self.parser.add_argument('--num_epochs', type=int, default=500,
                                  help='total training epochs.')
         self.parser.add_argument('--num_iters', type=int, default=-1,
                                  help='default: #samples / batch_size.')
@@ -42,9 +42,9 @@ class Config(object):
                                  help='batch size')
         self.parser.add_argument('--master_batch_size', type=int, default=-1,
                                  help='batch size on the master gpu.')
-        self.parser.add_argument('--save_intervals', type=int, default=1,
+        self.parser.add_argument('--save_intervals', type=int, default=5,
                                  help='number of epochs to save model.')
-        self.parser.add_argument('--val_intervals', type=int, default=1,
+        self.parser.add_argument('--val_intervals', type=int, default=10,
                                  help='number of epochs to run validation.')
         self.parser.add_argument('--no_eval', action='store_true',
                                  help='bypass mAP evaluation during training.')
@@ -67,7 +67,7 @@ class Config(object):
                                  help='weight of boxes regression loss.')
 
         # inference
-        self.parser.add_argument('--nms_thresh', type=float, default=0.4,
+        self.parser.add_argument('--nms_thresh', type=float, default=0.01,
                                  help='discards all overlapping boxes with IoU < nms_thresh.')
         self.parser.add_argument('--score_thresh', type=float, default=0.5,
                                  help='discards all boxes with scores smaller than score_thresh.')
@@ -77,7 +77,7 @@ class Config(object):
         # system
         self.parser.add_argument('--gpus', default='0',
                                  help='-1 for CPU, use comma for multiple gpus')
-        self.parser.add_argument('--num_workers', type=int, default=4,
+        self.parser.add_argument('--num_workers', type=int, default=12,
                                  help='dataloader threads. 0 for single-thread.')
         self.parser.add_argument('--not_cuda_benchmark', action='store_true',
                                  help='disable when the input size is not fixed.')
