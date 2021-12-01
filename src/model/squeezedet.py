@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
 from model.modules import deltas_to_boxes, compute_overlaps, safe_softmax
 
@@ -81,10 +82,9 @@ class SqueezeDetBase(nn.Module):
         if self.dropout is not None:
             x = self.dropout(x)
         x = self.convdet(x)
-
         x = x.permute(0, 2, 3, 1).contiguous()
-
-        return x.view(-1, self.num_anchors, self.num_classes + 5)
+        x = x.view(-1, self.num_anchors, self.num_classes + 5)
+        return x
 
     def init_weights(self):
         for m in self.modules():
@@ -140,38 +140,43 @@ class Loss(nn.Module):
         # resolver predictions
         pred_class_probs, pred_log_class_probs, pred_scores, pred_deltas, pred_boxes = self.resolver(pred)
 
+        if torch.any(torch.isnan(pred_boxes)):
+            print(">>>>>>>>>>>>>> nan in pred boxes")
+            raise
+
         num_objects = torch.sum(anchor_masks, dim=[1, 2])
-        num_objects = num_objects + 1
         overlaps = compute_overlaps(gt_boxes, pred_boxes) * anchor_masks
+        nz = torch.nonzero(num_objects, as_tuple=True)
 
         class_loss = torch.sum(
-            self.class_loss_weight * anchor_masks * gt_class_logits * (-pred_log_class_probs),
+            self.class_loss_weight * anchor_masks[nz] * gt_class_logits[nz] * (-pred_log_class_probs[nz]),
             dim=[1, 2],
-        ) / num_objects
+        ) / num_objects[nz]
 
         positive_score_loss = torch.sum(
-            self.positive_score_loss_weight * anchor_masks * (overlaps - pred_scores) ** 2,
+            self.positive_score_loss_weight * anchor_masks[nz] * (overlaps[nz] - pred_scores[nz]) ** 2,
             dim=[1, 2]
-        ) / num_objects
+        ) / num_objects[nz]
 
         negative_score_loss = torch.sum(
-            self.negative_score_loss_weight * (1 - anchor_masks) * (overlaps - pred_scores) ** 2,
+            self.negative_score_loss_weight * (1 - anchor_masks[nz]) * (overlaps[nz] - pred_scores[nz]) ** 2,
             dim=[1, 2]
-        ) / (self.num_anchors - num_objects)
+        ) / (self.num_anchors - num_objects[nz])
 
         bbox_loss = torch.sum(
-            self.bbox_loss_weight * anchor_masks * (pred_deltas - gt_deltas) ** 2,
+            self.bbox_loss_weight * anchor_masks[nz] * (pred_deltas[nz] - gt_deltas[nz]) ** 2,
             dim=[1, 2],
-        ) / num_objects
+        ) / num_objects[nz]
 
-        loss = class_loss + positive_score_loss + negative_score_loss + bbox_loss
+        loss = class_loss + positive_score_loss + negative_score_loss + 5*bbox_loss
         loss_stat = {
             'loss': loss,
             'class_loss': class_loss,
             'score_loss': positive_score_loss + negative_score_loss,
-            'bbox_loss': bbox_loss
+            'neg_score_loss':   negative_score_loss,
+            'pos_score_loss':  negative_score_loss,
+            'bbox_loss': 5*bbox_loss
         }
-
         return loss, loss_stat
 
 
@@ -184,7 +189,24 @@ class SqueezeDetWithLoss(nn.Module):
 
     def forward(self, batch):
         pred = self.base(batch['image'])
+
+        if torch.any(torch.isnan(pred)):
+            print(">>>>>>>>>>>>>>> nan in pred")
+            raise
+        if not torch.isfinite(pred).all():
+            print(">>>>>>>>>>>>>>> inf in pred")
+            raise
+
         loss, loss_stats = self.loss(pred, batch['gt'])
+
+        if torch.any(torch.isnan(loss)):
+            print(">>>>>>>>>>>>>> nan in loss")
+            raise
+
+        if not torch.isfinite(loss).all():
+            print(">>>>>>>>>>>>>>> inf in loss")
+            raise
+
         return loss, loss_stats
 
 
@@ -196,8 +218,13 @@ class SqueezeDet(nn.Module):
         self.resolver = PredictionResolver(cfg, log_softmax=False)
 
     def forward(self, batch):
+
         pred = self.base(batch['image'])
+
         pred_class_probs, _, pred_scores, _, pred_boxes = self.resolver(pred)
+
+        
+        
         pred_class_probs *= pred_scores
         pred_class_ids = torch.argmax(pred_class_probs, dim=2)
         pred_scores = torch.max(pred_class_probs, dim=2)[0]

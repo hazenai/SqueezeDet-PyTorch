@@ -4,7 +4,10 @@ import sys
 
 import numpy as np
 import torch
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 
 
 class Logger(object):
@@ -12,7 +15,7 @@ class Logger(object):
         args = dict((name, getattr(cfg, name)) for name in dir(cfg)
                     if not name.startswith('_'))
 
-        # os.makedirs(cfg.save_dir, exist_ok=True)
+        os.makedirs(cfg.save_dir, exist_ok=True)
         file_name = os.path.join(cfg.save_dir, 'config.txt')
         msg = 'torch version: {}\ncudnn version: {}\ncmd: {}\n\nconfig:\n'.format(
             torch.__version__, torch.backends.cudnn.version(), str(sys.argv)
@@ -34,7 +37,7 @@ class Logger(object):
         with open(os.path.join(self.log_dir, 'log.txt'), 'a') as fp:
             fp.write('{}: {}\n'.format(time_str, txt))
 
-    def update(self, metrics, phase, epoch, cfg):
+    def update(self, metrics, phase, epoch):
         text = 'epoch {0:<3s} {1:<5s} '.format(str(epoch) + ':', phase)
         for metric, value in metrics.items():
             if epoch not in self.metrics_history:
@@ -48,9 +51,6 @@ class Logger(object):
             else:
                 text += '| {} {:.3f} '.format(metric, value)
 
-        with open(cfg.log_file, 'a+') as file:
-            file.write(text + '\n')
-            file.write('\n')
         self.write(text)
 
     def plot(self, metrics):
@@ -79,7 +79,7 @@ class Logger(object):
             plt.savefig(save_path)
             plt.close()
 
-    def print_bests(self, metrics, cfg):
+    def print_bests(self, metrics):
         """ print best metrics on validation set """
         for metric in metrics:
             epochs, values = [], []
@@ -93,11 +93,7 @@ class Logger(object):
 
             f = np.argmin if 'loss' in metric else np.argmax
             best_idx = int(f(values))
-            msg = 'Best {}: {:.3f} (epoch {})'.format(
+            print('Best {}: {:.3f} (epoch {})'.format(
                 metric, values[best_idx], epochs[best_idx])
-            print(msg)
-            with open(cfg.log_file, 'a+') as file:
-                    file.write(msg + "\n")
+            )
         print('\n')
-        with open(cfg.log_file, 'a+') as file:
-                    file.write('\n')

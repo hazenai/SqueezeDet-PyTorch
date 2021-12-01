@@ -2,12 +2,9 @@ import torch
 import torch.nn as nn
 
 
-def load_model(model, model_path, cfg):
+def load_model(model, model_path):
     checkpoint = torch.load(model_path, map_location=lambda storage, loc: storage)
-    msg = 'loaded model {}, epoch {}'.format(model_path, checkpoint['epoch'])
-    print(msg)
-    with open(cfg.log_file, 'a+') as file:
-        file.write(msg + '\n')
+    print('loaded model {}, epoch {}'.format(model_path, checkpoint['epoch']))
     state_dict_ = checkpoint['state_dict']
     state_dict = {}
     for k in state_dict_:
@@ -23,39 +20,27 @@ def load_model(model, model_path, cfg):
         if layer in model_state_dict:
             if state_dict[layer].shape != model_state_dict[layer].shape:
                 success_loaded = False
-                msg = 'Skip loading param {}, required shape{}, loaded shape{}.'.format(
-                    layer, model_state_dict[layer].shape, state_dict[layer].shape)
-                print(msg)
-                with open(cfg.log_file, 'a+') as file:
-                    file.write(msg + '\n')
-
+                print('Skip loading param {}, required shape{}, loaded shape{}.'.format(
+                    layer, model_state_dict[layer].shape, state_dict[layer].shape))
                 state_dict[layer] = model_state_dict[layer]
         else:
             success_loaded = False
-            msg = 'Drop param {} in pre-trained model.'.format(layer)
-            print(msg)
-            with open(cfg.log_file, 'a+') as file:
-                file.write(msg + '\n')
+            print('Drop param {} in pre-trained model.'.format(layer))
+
     for layer in model_state_dict:
         if layer not in state_dict:
             success_loaded = False
-            msg = 'Param {} not found in pre-trained model.'.format(layer)
-            print(msg)
-            with open(cfg.log_file, 'a+') as file:
-                file.write(msg + '\n')
+            print('Param {} not found in pre-trained model.'.format(layer))
             state_dict[layer] = model_state_dict[layer]
 
     model.load_state_dict(state_dict, strict=False)
-    msg = 'Model successfully loaded.' if success_loaded else \
-          'The model does not fully load the pre-trained weight.'
-    print(msg)
+    print('Model successfully loaded.' if success_loaded else
+          'The model does not fully load the pre-trained weight.')
 
-    with open(cfg.log_file, 'a+') as file:
-                file.write(msg + '\n'+'\n')
     return model
 
 
-def load_official_model(model, model_path, cfg):
+def load_official_model(model, model_path):
     """
     load official models from https://pytorch.org/docs/stable/torchvision/models.html
     :param model:
@@ -73,7 +58,7 @@ def load_official_model(model, model_path, cfg):
     converted_model_path = model_path.replace('.pth', '_converted.pth')
     torch.save(checkpoint, converted_model_path)
 
-    return load_model(model, converted_model_path, cfg)
+    return load_model(model, converted_model_path)
 
 
 def save_model(model, path, epoch):

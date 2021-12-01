@@ -15,23 +15,22 @@ class DatasetWrapper(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         image, image_id = self.dataset.load_image(index)
-        gt_class_ids, gt_boxes = self.dataset.load_annotations(index)
-
         image_meta = {'index': index,
                       'image_id': image_id,
-                      'orig_size': np.array(image.shape, dtype=np.int32)}
+                      'orig_size': np.array(image.size, dtype=np.int32)}
         
-        image, image_meta, gt_boxes,_ = self.dataset.preprocess(image, image_meta, gt_boxes)
-        if gt_boxes is None:
-            gt_boxes = np.empty([0, 4]).astype(np.float32)
-        return gt_boxes
+        _, boxes = self.dataset.load_annotations(index)
+
+        image, image_meta, boxes = resize(image, image_meta, (128, 128), boxes=boxes)
+
+        return boxes
 
     def __len__(self):
         return len(self.dataset)
 
 
 def compute_dataset_anchors_seed(dataset, anchors_per_grid=9,
-                                 max_num_samples=20000, num_workers=4):
+                                 max_num_samples=30000, num_workers=4):
     """
     :param dataset: instance of torch.utils.data.Dataset class
     :param anchors_per_grid: number of anchors at each grid
@@ -43,8 +42,7 @@ def compute_dataset_anchors_seed(dataset, anchors_per_grid=9,
     dataloader = torch.utils.data.DataLoader(DatasetWrapper(dataset),
                                              batch_size=1,
                                              num_workers=num_workers,
-                                             pin_memory=True, 
-                                             shuffle=True)
+                                             pin_memory=True)
 
     dataset_boxes = []
     for boxes in tqdm.tqdm(dataloader):
@@ -60,8 +58,8 @@ def compute_dataset_anchors_seed(dataset, anchors_per_grid=9,
 
 
 def main():
-    cfg = Config().parse('eval --dataset yolo'.split(' '))
-    dataset = load_dataset(cfg.dataset)('trainval', cfg)
+    cfg = Config().parse('eval --dataset LPR'.split(' '))
+    dataset = load_dataset(cfg.dataset)('train', cfg)
 
     anchors_seed = compute_dataset_anchors_seed(dataset)
 

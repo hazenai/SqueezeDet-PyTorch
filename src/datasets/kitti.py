@@ -1,6 +1,9 @@
 import os
 import subprocess
 
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 import numpy as np
 import skimage.io
 
@@ -12,7 +15,7 @@ class KITTI(BaseDataset):
     def __init__(self, phase, cfg):
         super(KITTI, self).__init__(phase, cfg)
 
-        self.input_size = (384, 1248)  # (height, width), both dividable by 16
+        self.input_size = (256, 448)  # (height, width), both dividable by 16
         self.class_names = ('Car', 'Pedestrian', 'Cyclist')
         self.rgb_mean = np.array([93.877, 98.801, 95.923], dtype=np.float32).reshape(1, 1, 3)
         self.rgb_std = np.array([78.782, 80.130, 81.200], dtype=np.float32).reshape(1, 1, 3)
@@ -52,7 +55,7 @@ class KITTI(BaseDataset):
         image = skimage.io.imread(image_path).astype(np.float32)
         return image, image_id
 
-    def load_annotations(self, index, _, __):
+    def load_annotations(self, index):
         ann_id = self.sample_ids[index]
         ann_path = os.path.join(self.data_dir, 'training/label_2', ann_id + '.txt')
         with open(ann_path, 'r') as fp:
@@ -68,7 +71,6 @@ class KITTI(BaseDataset):
 
         class_ids = np.array(class_ids, dtype=np.int16)
         boxes = np.array(boxes, dtype=np.float32)
-
         return class_ids, boxes
 
     # ========================================

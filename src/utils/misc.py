@@ -21,8 +21,8 @@ def load_dataset(dataset_name):
         from datasets.kitti import KITTI as Dataset
     elif dataset_name.lower() == 'coco':
         from datasets.coco import COCO as Dataset
-    elif dataset_name.lower() == 'yolo':
-        from datasets.yolo import YOLO as Dataset
+    elif dataset_name.lower() == 'lpr':
+        from datasets.lpr import LPR as Dataset
     else:
         raise ValueError('invalid dataset name.')
     return Dataset

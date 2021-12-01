@@ -1,10 +1,16 @@
 import os
 import time
+import cv2
+import sys
+import skimage.io
+py_dll_path = os.path.join(sys.exec_prefix, 'Library', 'bin')
+os.environ['PATH'] += py_dll_path
 
 import numpy as np
 import torch
 import torch.utils.data
 from torchvision.ops import nms
+import torchvision.transforms as transforms
 
 from utils.image import image_postprocess
 from utils.boxes import boxes_postprocess, visualize_boxes
@@ -16,6 +22,7 @@ class Detector(object):
         self.model = model.to(cfg.device)
         self.model.eval()
         self.cfg = cfg
+        self.data_dir = os.path.join(cfg.data_dir, 'lpr_crop/merged_data')
 
     @torch.no_grad()
     def detect(self, batch):
@@ -35,21 +42,23 @@ class Detector(object):
                 continue
 
             det = {k: v.cpu().numpy() for k, v in det.items()}
+            simple_boxes = det['boxes']
             det['boxes'] = boxes_postprocess(det['boxes'], image_meta)
             det['image_meta'] = image_meta
             results.append(det)
 
             if self.cfg.debug == 2:
-                image = image_postprocess(batch['image'][b].cpu().numpy().transpose(1, 2, 0), image_meta)
+                image_path = os.path.join(self.data_dir, 'images', batch["image_meta"]["image_id"][b] + '.png')
+                image = skimage.io.imread(image_path).astype(np.float32)
                 save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
                 visualize_boxes(image, det['class_ids'], det['boxes'], det['scores'],
                                 class_names=self.cfg.class_names,
                                 save_path=save_path,
-                                show=False) #self.cfg.mode == 'demo'
+                                show=False)
 
         return results
 
-    def detect_dataset(self, dataset, cfg):
+    def detect_dataset(self, dataset):
         start_time = time.time()
 
         data_loader = torch.utils.data.DataLoader(DataWrapper(dataset),
@@ -67,27 +76,18 @@ class Detector(object):
                     batch[k] = batch[k].to(device=self.cfg.device, non_blocking=True)
             data_timer.update(time.time() - end)
             end = time.time()
-
             results.extend(self.detect(batch))
-
             net_timer.update(time.time() - end)
             end = time.time()
             if iter_id % self.cfg.print_interval == 0:
-                msg = 'eval: [{0}/{1}] | data {2:.3f}s | net {3:.3f}s'.format(
-                    iter_id, num_iters, data_timer.val, net_timer.val)
-                print(msg)
-                with open(cfg.log_file, 'a+') as file:
-                    file.write(msg + '\n')
+                print('eval: [{0}/{1}] | data {2:.3f}s | net {3:.3f}s'.format(
+                    iter_id, num_iters, data_timer.val, net_timer.val))
 
         total_time = time.time() - start_time
         tpi = total_time / len(dataset)
-        msg = 'Elapsed {:.2f}min ({:.1f}ms/image, {:.1f}frames/s)'.format(
-            total_time / 60., tpi * 1000., 1 / tpi)
-        print(msg)
+        print('Elapsed {:.2f}min ({:.1f}ms/image, {:.1f}frames/s)'.format(
+            total_time / 60., tpi * 1000., 1 / tpi))
         print('-' * 80)
-        with open(cfg.log_file, 'a+') as file:
-            file.write(msg + '\n')
-            file.write('-' * 80 + '\n')
 
         return results
 
@@ -109,7 +109,6 @@ class Detector(object):
             boxes_cur_class = boxes[idx_cur_class, :]
 
             keeps = nms(boxes_cur_class, scores_cur_class, self.cfg.nms_thresh)
-
             filtered_class_ids.append(class_ids_cur_class[keeps])
             filtered_scores.append(scores_cur_class[keeps])
             filtered_boxes.append(boxes_cur_class[keeps, :])
@@ -140,11 +139,11 @@ class DataWrapper(torch.utils.data.Dataset):
         image, image_id = self.dataset.load_image(index)
         image_meta = {'index': index,
                       'image_id': image_id,
-                      'orig_size': np.array(image.shape, dtype=np.int32)}
+                      'orig_size': np.array(image.size, dtype=np.int32)}
 
-        image, image_meta, gt_boxes, gt_class_ids = self.dataset.preprocess(image, image_meta)
+        image, image_meta, _, _ = self.dataset.preprocess(image, image_meta)
 
-        batch = {'image': image.transpose(2, 0, 1),
+        batch = {'image': image,
                  'image_meta': image_meta}
         return batch
 

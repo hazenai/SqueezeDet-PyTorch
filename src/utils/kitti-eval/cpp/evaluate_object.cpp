@@ -1,5 +1,4 @@
 #include <iostream>
-#include <fstream>
 #include <algorithm>
 #include <stdio.h>
 #include <math.h>
@@ -684,17 +683,8 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
       image_set.push_back(str);
     }
   }
+  //image_set.pop_back();
   fclose(fp);
-  ////////////////////
-  //write image_set to file for debug purposes
-  // ofstream file;
-	// file.open("./read_label.txt");
-	// for(int i=0;i<image_set.size();++i){
-	// 	file<<image_set[i]<<endl;
-	// }
-	// file.close();
-  ////////////////////
-
   if( image_set.size() != N_TESTIMAGES ) {
     printf( "image_set.size()=%s N_TESTIMAGES=%s\n", str(image_set.size()).c_str(), str(N_TESTIMAGES).c_str() );
   }
@@ -831,11 +821,11 @@ int32_t main (int32_t argc,char *argv[]) {
 
   // read arguments
   string const kitti_dir          = argv[1];
-  string const gt_dir             = ospj( kitti_dir, "label_2"); // FIXME_MWM: should be part of input? configurable?
+  string const gt_dir             = ospj( kitti_dir, "labels"); // FIXME_MWM: should be part of input? configurable?
   string const image_set_filename = argv[2];
   string const result_dir         = argv[3];
   int32_t const N_TESTIMAGES      = atoi(argv[4]);
-  std::cout<<"gt dir:"<<gt_dir<<std::endl;
+
   // init notification mail
   Mail *mail = new Mail();
   mail->msg("Thank you for participating in our evaluation!");

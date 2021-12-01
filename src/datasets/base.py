@@ -1,18 +1,18 @@
 import os
-
+import cv2
 import numpy as np
 import torch.utils.data
-
-from utils.image import whiten, drift, flip, resize, crop_or_pad
-from utils.boxes import compute_deltas, visualize_boxes
+import torchvision.transforms as transforms
+import random
 import imgaug as ia
 import imgaug.augmenters as iaa
-import random
-import torchvision.transforms as transforms
 from imgaug.augmentables.bbs import BoundingBox, BoundingBoxesOnImage
 from PIL import Image,ImageDraw
-import cv2
 
+from utils.image import resize, crop_or_pad, synthetic_plates
+from utils.boxes import compute_deltas, visualize_boxes
+
+ia.seed(1042)
 
 class BaseDataset(torch.utils.data.Dataset):
     def __init__(self, phase, cfg):
@@ -21,24 +21,24 @@ class BaseDataset(torch.utils.data.Dataset):
         self.cfg = cfg
         self.seq = iaa.Sequential([
             iaa.SomeOf((0, 2),[
-                iaa.Flipud(1),
-                iaa.Fliplr(1),
+                iaa.Flipud(0.5),
+                iaa.Fliplr(0.1),
             ]),
             # Perspective/Affine
             iaa.Sometimes(
-                p=0.4,
+                p=0.3,
                 then_list=iaa.OneOf([
                         iaa.Affine(
                                 scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
-                                translate_percent={"x": (-0.15, 0.15), "y": (-0.15, 0.15)},
+                                translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)},
                                 rotate=(-20, 20),
                                 shear=(-15, 15),
                                 order=[0, 1],
                                 cval=(0, 255),
                                 mode=ia.ALL
                             ),
-                        # iaa.CropAndPad(percent=(-0.3, 0.3), pad_mode=ia.ALL),
-                        iaa.PerspectiveTransform(scale=(0.1, 0.3)),
+                        iaa.CropAndPad(percent=(-0.3, 0.3), pad_mode=ia.ALL),
+                        iaa.PerspectiveTransform(scale=(0.02, 0.15)),
                         # iaa.PiecewiseAffine(scale=(0.01, 0.1)),
                     ])
             ),
@@ -50,7 +50,7 @@ class BaseDataset(torch.utils.data.Dataset):
                 ])
             ),
             iaa.Sometimes(
-                p=0.1,
+                p=0.05,
                 then_list=iaa.OneOf([
                 # iaa.Cartoon(blur_ksize=3, segmentation_size=1.0, saturation=2.0, edge_prevalence=1.0),
                 iaa.DirectedEdgeDetect(alpha=(0.0, 0.3), direction=(0.0, 1.0)),
@@ -60,7 +60,7 @@ class BaseDataset(torch.utils.data.Dataset):
                 ])
             ),
             iaa.Sometimes(
-                p=0.25,
+                p=0.15,
                 then_list=iaa.OneOf([
                     ## Smoothing
                     iaa.OneOf([
@@ -71,7 +71,7 @@ class BaseDataset(torch.utils.data.Dataset):
                     iaa.OneOf([
                         iaa.imgcorruptlike.DefocusBlur(severity=1),
                         iaa.imgcorruptlike.ZoomBlur(severity=1),
-                        iaa.MotionBlur(k=(3, 25), angle=(0, 360),direction=(-1.0, 1.0)),
+                        iaa.MotionBlur(k=(3, 15), angle=(0, 360),direction=(-1.0, 1.0)),
                         iaa.imgcorruptlike.MotionBlur(severity=1),
                         iaa.BilateralBlur(d=(3, 10), sigma_color=(10, 250), sigma_space=(10, 250)),
                     ]),
@@ -80,7 +80,7 @@ class BaseDataset(torch.utils.data.Dataset):
                         iaa.pillike.FilterEdgeEnhance(),
                         iaa.pillike.FilterEdgeEnhanceMore(),
                         iaa.pillike.FilterContour(),
-                        iaa.pillike.FilterDetail(),
+                        iaa.pillike.FilterDetail(),            
                     ])
                 ])
             ),
@@ -89,66 +89,93 @@ class BaseDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         image, image_id = self.load_image(index)
         gt_class_ids, gt_boxes = self.load_annotations(index)
-
         image_meta = {'index': index,
                       'image_id': image_id,
-                      'orig_size': np.array(image.shape, dtype=np.int32)}
-        
-        image, image_meta, gt_boxes, gt_class_ids = self.preprocess(image, image_meta, gt_boxes, gt_class_ids)
-        gt = self.prepare_annotations(gt_class_ids, gt_boxes)
+                      'orig_size': np.array(image.size, dtype=np.int32)}
 
-        inp = {'image': image.transpose(2, 0, 1),
+        #print(image.size)
+        #raise
+
+        image, image_meta, gt_boxes, gt_class_ids = self.preprocess(image, image_meta, gt_boxes, gt_class_ids)
+        
+        gt = self.prepare_annotations(gt_class_ids, gt_boxes)
+        inp = {'image': image,
                'image_meta': image_meta,
                'gt': gt}
 
         if self.cfg.debug == 1:
-            image = image * image_meta['rgb_std'] + image_meta['rgb_mean']
-            save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
+            save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.jpg')
             visualize_boxes(image, gt_class_ids, gt_boxes,
                             class_names=self.class_names,
                             save_path=save_path)
-
         return inp
 
     def __len__(self):
         return len(self.sample_ids)
 
     def preprocess(self, image, image_meta, boxes=None, class_ids=None):
-
         if self.cfg.forbid_resize:
+
             image, image_meta, boxes = crop_or_pad(image, image_meta, self.input_size, boxes=boxes)
         else:
             image, image_meta, boxes = resize(image, image_meta, self.input_size, boxes=boxes)
 
-        if self.phase == "train":
-            prob = random.random()
-            if boxes is not None:
+        #print("after_resize: ",boxes)
+
+        if boxes is not None:
+            # boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., image_meta['orig_size'][0] - 1.)
+            # boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., image_meta['orig_size'][1] - 1.) 
+            if self.phase == "train":
+                # p = random.random()
+                # if p < 0.6:
+                #     if "filtered" not in image_meta['image_id']:
+                #         image,boxes = synthetic_plates(image, image_meta, 1, torch.from_numpy(boxes))
+                #         boxes = boxes.numpy()
+                prob = random.random()
                 if prob < 0.7:
-                    image = Image.fromarray(cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_BGR2RGB))
                     image = transforms.ColorJitter(brightness=(0.6,1.3), contrast=(0.6, 1.3),
-                                            saturation=(0.6, 1.3), hue=(-0.3, 0.3)) (image)
-                    image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+                                          saturation=(0.6, 1.3), hue=(-0.3, 0.3)) (image)
+                    # image = Image.fromarray(self.seq(image=np.array(image)))
                     boxes_aug = []
-                    for box, label in zip(boxes, class_ids):
-                        boxes_aug.append(BoundingBox(box[0],box[1],box[2],box[3], label=label))
-                    boxes_augmented = BoundingBoxesOnImage(boxes_aug,shape=image.shape)
-                    image_aug, bbs_aug = self.seq(image = image, bounding_boxes=boxes_augmented)
+                    for box in boxes:
+                        boxes_aug.append(BoundingBox(box[0],box[1],box[2],box[3]))
+                    boxes_augmented = BoundingBoxesOnImage(boxes_aug,shape=image.size)
+                    image_aug, bbs_aug = self.seq(image=np.array(image), bounding_boxes=boxes_augmented)
                     bbs_aug = bbs_aug.remove_out_of_image(fully=True, partly=True).clip_out_of_image()
+                    image_aug = Image.fromarray(image_aug)
+                    image = image_aug
                     boxes = np.zeros((len(bbs_aug.bounding_boxes),4))
-                    class_ids = []
                     for i in range(len(bbs_aug.bounding_boxes)):
                         boxes[i]= [bbs_aug.bounding_boxes[i].x1,bbs_aug.bounding_boxes[i].y1,
                                     bbs_aug.bounding_boxes[i].x2,bbs_aug.bounding_boxes[i].y2]
-                        class_ids.append(bbs_aug.bounding_boxes[i].label)
-                    class_ids = np.array(class_ids, dtype=np.int16)
-                    image = image_aug.astype(np.float32)
-                    if not len(boxes):
-                        boxes = None
+                    class_ids = np.zeros((len(bbs_aug.bounding_boxes),), dtype=int)   #### chaipi
+                    # class_ids = np.zeros((len(boxes),), dtype=int)
+
+
+            # boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., image_meta['orig_size'][0] - 1.)
+            # boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., image_meta['orig_size'][1] - 1.)
+
+            # print("after_clip: ",boxes)
+            # print(image_meta['orig_size'][1])
+
+
+            if not np.all(boxes[:, 0] < boxes[:, 2]) or not np.all(boxes[:, 1] < boxes[:, 3]):
+                boxes = None
+    
+
+        image = transforms.Grayscale(num_output_channels=3) (image)
+
+        # image_1 = image.copy()
+        # img = ImageDraw.Draw(image_1)
+        # if boxes is not None:
+        #     for box in boxes:
+        #         shape = [(box[0],box[1]),(box[2],box[3])]
+        #         img.rectangle(shape, outline ="green")
         
-        image, image_meta = whiten(image, image_meta, mean=self.rgb_mean, std=self.rgb_std)
-        if boxes is not None:
-            boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., image_meta['orig_size'][1] - 1.)
-            boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., image_meta['orig_size'][0] - 1.)            
+        # image_1.save('./tr/'+image_meta['image_id']+'.jpg')
+
+        image = transforms.ToTensor()(image)
+        # image = (image*2) - 1
         return image, image_meta, boxes, class_ids
 
     def prepare_annotations(self, class_ids, boxes):
@@ -157,13 +184,16 @@ class BaseDataset(torch.utils.data.Dataset):
         :param boxes: xyxy format
         :return: np.ndarray(#anchors, #classes + 9)
         """
-        gt = np.zeros((self.num_anchors, self.num_classes + 9), dtype=np.float32)
-        if boxes is not None:
+        if boxes is not None and boxes.size!=0:
+            class_ids = np.zeros((len(boxes),), dtype=int)
             deltas, anchor_indices = compute_deltas(boxes, self.anchors)
+            gt = np.zeros((self.num_anchors, self.num_classes + 9), dtype=np.float32)
             gt[anchor_indices, 0] = 1.  # mask
             gt[anchor_indices, 1:5] = boxes
             gt[anchor_indices, 5:9] = deltas
             gt[anchor_indices, 9 + class_ids] = 1.  # class logits
+        else:
+            gt = np.zeros((self.num_anchors, self.num_classes + 9), dtype=np.float32)
 
         return gt
 
