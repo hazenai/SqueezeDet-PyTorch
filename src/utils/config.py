@@ -20,8 +20,8 @@ class Config(object):
         self.parser.add_argument('--exp_id', default='default')
 
         # model
-        self.parser.add_argument('--arch', default='squeezedet',
-                                 help='model architecture: squeezedet | squeezedetplus')
+        self.parser.add_argument('--arch', default='mobilenet_v2',
+                                 help='model architecture: squeezedet | squeezedetplus | mobilenet_v2')
         self.parser.add_argument('--dropout_prob', type=float, default=0.0,
                                  help='probability of dropout.')
 

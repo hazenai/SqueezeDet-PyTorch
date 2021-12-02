@@ -56,62 +56,17 @@ class Trainer(object):
                 if phase == 'train':
                     self.optimizer.zero_grad()
                     loss.backward()
-
                     throw_error = False
-
-                    for name, param in self.model.named_parameters():
+                    for param in self.model.parameters():
                         if not torch.isfinite(param.grad).all():
                             throw_error = True
-                            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                            print("grad nan before clip")
-                            print("loss")
-                            print(loss)
-                            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                            break
-
-
-                    
                     if throw_error:
-                        continue
-                            
-
+                        self.optimizer.zero_grad()
 
                     nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, self.model.parameters()),
                                             self.cfg.grad_norm)
-
-                    # for name, param in self.model.named_parameters():
-                    #     if not torch.isfinite(param.grad).all():
-                    #         print("grad nan after clip")
-                    #         raise
-
-                    #if torch.any(torch.isnan())
-
-                    # for name, param in self.model.named_parameters():
-                    #     if not torch.isfinite(param.data).all():
-                    #         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #         print("wight nan before step")
-                    #         print("loss")
-                    #         print(loss)
-                    #         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #         raise
-
                     self.optimizer.step()
 
-
-                    # for name, param in self.model.named_parameters():
-                    #     if not torch.isfinite(param.data).all():
-                    #         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #         print("wight nan after step")
-                    #         print("loss")
-                    #         print(loss)
-                    #         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #         raise
 
                 msg = 'epoch {0:<3s} {1:<5s} [{2}/{3}] '.format(str(epoch) + ':', phase, iter_id, num_iters)
                 for m in metric_loggers:

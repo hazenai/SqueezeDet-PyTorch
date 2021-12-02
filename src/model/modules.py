@@ -16,18 +16,7 @@ def xyxy_to_xywh(boxes_xyxy):
 
 def xywh_to_xyxy(boxes_xywh):
     #assert torch.all(boxes_xywh[..., [2, 3]] > 0)
-    # if not torch.all(boxes_xywh[..., [2, 3]] > 0):
-    #     raise
     if not torch.all(boxes_xywh[..., [2, 3]] > 0):
-        
-        if not torch.isfinite(boxes_xywh).all():
-            print(boxes_xywh)
-            print("9999999999999999999999999999999999999999999999999999")
-            print("nan in boxes !")
-            print("9999999999999999999999999999999999999999999999999999")
-            #raise
-        
-        print(">>>>>>>>>>>>>>>>  clip boxes >>>>>>>>>>>>>>>>>>")
         boxes_xywh[..., [2, 3]] = torch.clamp(boxes_xywh[..., [2, 3]], min=0.)
 
     return torch.cat([

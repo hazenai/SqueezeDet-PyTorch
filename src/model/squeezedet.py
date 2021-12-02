@@ -1,4 +1,5 @@
 import torch
+import torchvision
 import torch.nn as nn
 import numpy as np
 
@@ -48,6 +49,7 @@ class SqueezeDetBase(nn.Module):
                 # Fire(512, 96, 384, 384),
                 # Fire(768, 96, 384, 384)
             )
+            out_channels = 768
         elif cfg.arch == 'squeezedetplus':
             self.features = nn.Sequential(
                 nn.Conv2d(3, 96, kernel_size=7, stride=2, padding=3),
@@ -66,12 +68,19 @@ class SqueezeDetBase(nn.Module):
                 Fire(512, 384, 256, 256),
                 Fire(512, 384, 256, 256),
             )
+            out_channels = 512
+        elif cfg.arch == 'mobilenet_v2':
+            self.features = torchvision.models.mobilenet_v2(pretrained=False).features
+            self.features = nn.Sequential(*list(self.features.children()))
+            block_14 = self.features[14]
+            block_14.conv[1][0].stride = (1, 1)
+            out_channels = 1280
         else:
             raise ValueError('Invalid architecture.')
 
         self.dropout = nn.Dropout(cfg.dropout_prob, inplace=True) \
             if cfg.dropout_prob > 0 else None
-        self.convdet = nn.Conv2d(512 if cfg.arch == 'squeezedet' else 512,
+        self.convdet = nn.Conv2d(out_channels,
                                  cfg.anchors_per_grid * (cfg.num_classes + 5),
                                  kernel_size=3, padding=1)
 
