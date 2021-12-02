@@ -19,8 +19,8 @@ class LPR(BaseDataset):
         super(LPR, self).__init__(phase, cfg)
 
         #self.input_size = (512, 512)  # (height, width), both dividable by 16
-        # self.input_size = (256, 256)
-        self.input_size = (128, 128)
+        self.input_size = (256, 256)
+        # self.input_size = (128, 128)
 
         self.class_names = ('0')
         self.rgb_mean = np.array([97.631615, 98.70732, 98.41285], dtype=np.float32).reshape(1, 1, 3)

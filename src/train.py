@@ -1,5 +1,6 @@
 import os
 import operator
+import copy
 import numpy as np
 
 import torch
@@ -26,18 +27,28 @@ def train(cfg):
     logger = Logger(cfg)
 
     model = SqueezeDetWithLoss(cfg)
+
     if cfg.load_model != '':
         if cfg.load_model.endswith('f364aa15.pth') or cfg.load_model.endswith('a815701f.pth') or cfg.load_model.endswith('b0353104.pth'):
             model = load_official_model(model, cfg.load_model)
         else:
             model = load_model(model, cfg.load_model)
 
+    # QAT Parameters
+    model.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
+    fused_model = copy.deepcopy(model)
+    fused_model.fuse_model()
+    assert model_equivalence(model_1=model, model_2=fused_model, device='cpu', rtol=1e-03, atol=1e-06, num_tests=100, input_size=(1,3,cfg.input_size[0],cfg.input_size[1])), "Fused model is not equivalent to the original model!"
+    
+    qat_model = torch.quantization.prepare_qat(fused_model)
+
+
     # optimizer = torch.optim.SGD(model.parameters(),
     #                             lr=cfg.lr,
     #                             momentum=cfg.momentum,
     #                             weight_decay=cfg.weight_decay)
     
-    optimizer = torch.optim.Adam(model.parameters(),
+    optimizer = torch.optim.Adam(qat_model.parameters(),
                                 lr=cfg.lr,
                                 betas=(0.9, 0.999),
                                 eps=1e-08,
@@ -46,7 +57,7 @@ def train(cfg):
     lr_scheduler = StepLR(optimizer, 200, gamma=0.5)
     # lr_scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=700, T_mult=1)
 
-    trainer = Trainer(model, optimizer, lr_scheduler, cfg)
+    trainer = Trainer(qat_model, optimizer, lr_scheduler, cfg)
     
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=cfg.batch_size,
@@ -71,27 +82,45 @@ def train(cfg):
         logger.update(train_stats, phase='train', epoch=epoch)
 
         save_path = os.path.join(cfg.save_dir, 'model_last.pth')
-        save_model(model, save_path, epoch)
+        save_model(qat_model, save_path, epoch)
 
         if epoch % cfg.save_intervals == 0:
             save_path = os.path.join(cfg.save_dir, 'model_{}.pth'.format(epoch))
-            save_model(model, save_path, epoch)
+            save_model(qat_model, save_path, epoch)
 
         if cfg.val_intervals > 0 and epoch % cfg.val_intervals == 0:
             val_stats = trainer.val_epoch(epoch, val_loader)
             logger.update(val_stats, phase='val', epoch=epoch)
 
             if not cfg.no_eval:
-                aps = eval_dataset(val_dataset, save_path, cfg)
+                aps = eval_dataset(val_dataset, qat_model, cfg)
                 logger.update(aps, phase='val', epoch=epoch)
 
             value = val_stats['loss'] if cfg.no_eval else aps['mAP']
             if better_than(value, best):
                 best = value
                 save_path = os.path.join(cfg.save_dir, 'model_best.pth')
-                save_model(model, save_path, epoch)
+                save_model(qat_model, save_path, epoch)
 
         logger.plot(metrics)
         logger.print_bests(metrics)
 
     torch.cuda.empty_cache()
+
+def model_equivalence(model_1, model_2, device, rtol=1e-05, atol=1e-08, num_tests=100, input_size=(1,3,32,32)):
+
+    model_1.to(device)
+    model_2.to(device)
+
+    for _ in range(num_tests):
+        x = torch.rand(size=input_size).to(device)
+
+        y1 = model_1.base(x).detach().cpu().numpy()
+        y2 = model_2.base(x).detach().cpu().numpy()
+        if np.allclose(a=y1, b=y2, rtol=rtol, atol=atol, equal_nan=False) == False:
+            print("Model equivalence test sample failed: ")
+            print(y1)
+            print(y2)
+            return False
+
+    return True

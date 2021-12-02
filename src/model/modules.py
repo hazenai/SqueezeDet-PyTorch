@@ -17,7 +17,7 @@ def xyxy_to_xywh(boxes_xyxy):
 def xywh_to_xyxy(boxes_xywh):
     #assert torch.all(boxes_xywh[..., [2, 3]] > 0)
     if not torch.all(boxes_xywh[..., [2, 3]] > 0):
-        boxes_xywh[..., [2, 3]] = torch.clamp(boxes_xywh[..., [2, 3]], min=0.)
+        boxes_xywh[..., [2, 3]] = torch.clamp(boxes_xywh[..., [2, 3]], min=1.)
 
     return torch.cat([
         boxes_xywh[..., [0]] - 0.5 * (boxes_xywh[..., [2]] - 1),

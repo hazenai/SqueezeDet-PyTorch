@@ -44,15 +44,7 @@ class Trainer(object):
                 loss, loss_stats = self.model(batch)
 
                 loss = loss.mean()
-
-                # if torch.any(torch.isnan(loss)):
-                #     print(">>>>>>>>>>>>>> train: nan in loss")
-                #     raise
-
-                # if not torch.isfinite(loss).all():
-                #     print(">>>>>>>>>>>>>>> train: inf in loss")
-                #     raise
-
+                
                 if phase == 'train':
                     self.optimizer.zero_grad()
                     loss.backward()

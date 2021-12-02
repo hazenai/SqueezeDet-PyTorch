@@ -20,7 +20,7 @@ class Config(object):
         self.parser.add_argument('--exp_id', default='default')
 
         # model
-        self.parser.add_argument('--arch', default='mobilenet_v2',
+        self.parser.add_argument('--arch', default='squeezedet',
                                  help='model architecture: squeezedet | squeezedetplus | mobilenet_v2')
         self.parser.add_argument('--dropout_prob', type=float, default=0.0,
                                  help='probability of dropout.')
@@ -32,7 +32,7 @@ class Config(object):
                                  help='momentum of SGD.')
         self.parser.add_argument('--weight_decay', type=float, default=0.0000,
                                  help='weight decay of SGD.')
-        self.parser.add_argument('--grad_norm', type=float, default=5.,
+        self.parser.add_argument('--grad_norm', type=float, default=1.,
                                  help='max norm of the gradients.')
         self.parser.add_argument('--num_epochs', type=int, default=3000,
                                  help='total training epochs.')
