@@ -15,24 +15,16 @@ class YOLO(BaseDataset):
         super(YOLO, self).__init__(phase, cfg)
 
         self.input_size = (256, 448)  # (height, width), both dividable by 16
-        self.class_names = ('bike', 'car', 'bus')
-        # real_filtered mean and std
-        # self.rgb_mean = np.array([94.87347, 96.89165, 94.70493], dtype=np.float32).reshape(1, 1, 3)
-        # self.rgb_std = np.array([53.869507, 53.936283, 55.2807], dtype=np.float32).reshape(1, 1, 3)
-        
-        # real_filtered plus all_sites_seatbelt mean and std
+        self.class_names = ('COTS')
+
         self.rgb_mean = np.array([104.90631, 105.41336, 104.70162], dtype=np.float32).reshape(1, 1, 3)
         self.rgb_std = np.array([50.69564, 49.60443, 50.158844], dtype=np.float32).reshape(1, 1, 3)
         self.num_classes = len(self.class_names)
-        self.class_ids_dict = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_names)}
 
-        self.data_dir = os.path.join(cfg.data_dir, 'all_real_plus_synth_8sites_plus_SVsynth_plus_seatbelt_plus_new_trajectory_data_kitti_format_5percentofwidth_filtered')
+        self.data_dir = os.path.join(cfg.data_dir, 'COTS')
         self.sample_ids, self.sample_set_path = self.get_sample_ids()
 
-        self.grid_size = tuple(x // 16 for x in self.input_size)  # anchors grid 
-        # self.anchors_seed = np.array([[ 29, 17], [46, 32], [69, 52],
-        #                                 [109, 68], [84, 127], [155, 106], 
-        #                                 [255, 145], [183, 215], [371, 221]], dtype=np.float32) ## real_filtered anchors
+        self.grid_size = tuple(x // cfg.stride for x in self.input_size)  # anchors grid 
         
         self.anchors_seed = np.array( [[ 32, 20], [ 61, 42], [ 59, 97],
                                         [103, 66], [122, 114], [183, 96],
@@ -50,7 +42,7 @@ class YOLO(BaseDataset):
             else 'trainval.txt' if self.phase == 'trainval' \
             else None
 
-        sample_ids_path = os.path.join(self.data_dir, 'image_sets', sample_set_name)
+        sample_ids_path = os.path.join(self.data_dir, sample_set_name)
         with open(sample_ids_path, 'r') as fp:
             sample_ids = fp.readlines()
         sample_ids = tuple(x.strip() for x in sample_ids)
@@ -59,7 +51,7 @@ class YOLO(BaseDataset):
 
     def load_image(self, index):
         image_id = self.sample_ids[index]
-        image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.jpg')
+        image_path = os.path.join(self.data_dir, image_id)
         image = default_loader(image_path)
         if image.mode == 'L':
             image = image.convert('RGB')
@@ -69,7 +61,7 @@ class YOLO(BaseDataset):
 
     def load_annotations(self, index):
         ann_id = self.sample_ids[index]
-        ann_path = os.path.join(self.data_dir, 'training/label_2', ann_id + '.txt')
+        ann_path = os.path.join(self.data_dir, ann_id[:-4] + '.txt')
         with open(ann_path, 'r') as fp:
             annotations = fp.readlines()
 
@@ -78,12 +70,8 @@ class YOLO(BaseDataset):
         for ann in annotations:
             if ann[0] not in self.class_names:
                 continue
-            class_ids.append(self.class_ids_dict[ann[0]])
-            box = [float(x) for x in ann[4:8]]
-            # if box[2] <= 0:
-            #     box[2] = 0.00001
-            # if box[3] <= 0:
-            #     box[3] = 0.00001
+            class_ids.append(int(ann[0]))
+            box = [float(x) for x in ann[1:]]
             boxes.append(box)
 
         class_ids = np.array(class_ids, dtype=np.int16)

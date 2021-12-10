@@ -28,6 +28,6 @@ def eval_dataset(dataset, model_path, cfg):
 
     results = detector.detect_dataset(dataset, cfg)
     dataset.save_results(results)
-    aps = dataset.evaluate()
+    # aps = dataset.evaluate()
 
-    return aps
+    # return aps

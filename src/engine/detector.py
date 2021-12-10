@@ -38,7 +38,8 @@ class Detector(object):
             det['boxes'] = boxes_postprocess(det['boxes'], image_meta)
             det['image_meta'] = image_meta
             results.append(det)
-
+            output_tensor = torch.cat([det['class_ids'].unsqueeze(axis=1), det['scores'], det['boxes']], axis=1)  
+            
             if self.cfg.debug == 2:
                 image = image_postprocess(batch['image'][b].cpu().numpy().transpose(1, 2, 0), image_meta)
                 save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
