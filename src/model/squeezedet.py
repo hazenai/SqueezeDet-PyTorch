@@ -7,7 +7,7 @@ EPSILON = 1E-10
 
 
 class Fire(nn.Module):
-    def __init__(self, inplanes, squeeze_planes, expand1x1_planes, expand3x3_planes):
+    def __init__(self, inplanes, squeeze_planes, expand1x1_planes, expand3x3_planes, qat):
         super(Fire, self).__init__()
         self.squeeze = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1)
         self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes, kernel_size=1)
@@ -15,14 +15,88 @@ class Fire(nn.Module):
         self.activation_1 = nn.ReLU(inplace=True)
         self.activation_2 = nn.ReLU(inplace=True)
         self.activation_3 = nn.ReLU(inplace=True)
+        self.qat = qat
         self.float_functional_simple = torch.nn.quantized.FloatFunctional()
+
     def forward(self, x):
         x = self.activation_1(self.squeeze(x))
-        x = self.float_functional_simple.cat([
-            self.activation_2(self.expand1x1(x)),
-            self.activation_3(self.expand3x3(x))
-        ], dim=1)
+        if self.qat:
+            x = self.float_functional_simple.cat([
+                self.activation_2(self.expand1x1(x)),
+                self.activation_3(self.expand3x3(x))
+            ], dim=1)
+        else:
+            x = torch.cat([
+                self.activation_2(self.expand1x1(x)),
+                self.activation_3(self.expand3x3(x))
+            ], dim=1)
         return x
+
+
+def _make_divisible(v, divisor, min_value=None):
+    """
+    This function is taken from the original tf repo.
+    It ensures that all layers have a channel number that is divisible by 8
+    It can be seen here:
+    https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
+    :param v:
+    :param divisor:
+    :param min_value:
+    :return:
+    """
+    if min_value is None:
+        min_value = divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+    # Make sure that round down does not go down by more than 10%.
+    if new_v < 0.9 * v:
+        new_v += divisor
+    return new_v
+
+
+class ConvBNReLU(nn.Sequential):
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1):
+        padding = (kernel_size - 1) // 2
+        super(ConvBNReLU, self).__init__(
+            nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=False),
+            nn.BatchNorm2d(out_planes, momentum=0.1),
+            # Replace with ReLU
+            nn.ReLU(inplace=False)
+        )
+
+
+class InvertedResidual(nn.Module):
+    def __init__(self, inp, oup, stride, expand_ratio, qat):
+        super(InvertedResidual, self).__init__()
+        self.stride = stride
+        self.qat = qat
+        assert stride in [1, 2]
+
+        hidden_dim = int(round(inp * expand_ratio))
+        self.use_res_connect = self.stride == 1 and inp == oup
+
+        layers = []
+        if expand_ratio != 1:
+            # pw
+            layers.append(ConvBNReLU(inp, hidden_dim, kernel_size=1))
+        layers.extend([
+            # dw
+            ConvBNReLU(hidden_dim, hidden_dim, stride=stride, groups=hidden_dim),
+            # pw-linear
+            nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(oup, momentum=0.1),
+        ])
+        self.conv = nn.Sequential(*layers)
+        # Replace torch.add with floatfunctional
+        self.skip_add = nn.quantized.FloatFunctional()
+
+    def forward(self, x):
+        if self.use_res_connect:
+            if self.qat:
+                return self.skip_add.add(x, self.conv(x))
+            else:
+                return torch.add(x, self.conv(x))
+        else:
+            return self.conv(x)
 
 
 class SqueezeDetBase(nn.Module):
@@ -32,27 +106,25 @@ class SqueezeDetBase(nn.Module):
         self.num_anchors = cfg.num_anchors
         self.quant = torch.quantization.QuantStub()
         self.dequant = torch.quantization.DeQuantStub()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1)
-        self.relu1 = nn.ReLU(inplace=True)
+        self.arch = cfg.arch
         self.qat = cfg.qat
-
-        if cfg.arch == 'squeezedet':
+        if self.arch == 'squeezedet':
+            self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1)
+            self.relu1 = nn.ReLU(inplace=True)
             self.features = nn.Sequential(
-                # nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1),
-                # nn.ReLU(inplace=True),
                 nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(64, 16, 64, 64),
-                Fire(128, 16, 64, 64),
+                Fire(64, 16, 64, 64, self.qat),
+                Fire(128, 16, 64, 64, self.qat),
                 nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(128, 32, 128, 128),
-                Fire(256, 32, 128, 128),
+                Fire(128, 32, 128, 128, self.qat),
+                Fire(256, 32, 128, 128, self.qat),
                 nn.MaxPool2d(kernel_size=1, stride=1, ceil_mode=True),
-                Fire(256, 48, 192, 192),
-                Fire(384, 48, 192, 192),
-                Fire(384, 64, 256, 256),
-                Fire(512, 64, 256, 256),
-                # Fire(512, 96, 384, 384),
-                # Fire(768, 96, 384, 384)
+                Fire(256, 48, 192, 192, self.qat),
+                Fire(384, 48, 192, 192, self.qat),
+                Fire(384, 64, 256, 256, self.qat),
+                Fire(512, 64, 256, 256, self.qat),
+                # Fire(512, 96, 384, 384, self.qat),
+                # Fire(768, 96, 384, 384, self.qat)
             )
             out_channels = 512
         # elif cfg.arch == 'squeezedetplus':
@@ -74,12 +146,44 @@ class SqueezeDetBase(nn.Module):
         #         Fire(512, 384, 256, 256),
         #     )
         #     out_channels = 512
-        # elif cfg.arch == 'mobilenet_v2':
-        #     self.features = torchvision.models.mobilenet_v2(pretrained=False).features
-        #     self.features = nn.Sequential(*list(self.features.children()))
-        #     block_14 = self.features[14]
-        #     block_14.conv[1][0].stride = (1, 1)
-        #     out_channels = 1280
+        elif self.arch == 'mobilenet_v2':
+            width_mult=1.0
+            round_nearest=8
+            block = InvertedResidual
+            input_channel = 32
+            last_channel = 256
+            inverted_residual_setting = [
+                # t, c, n, s
+                [1, 16, 1, 1, self.qat],
+                [6, 24, 2, 2, self.qat],
+                [6, 32, 3, 2, self.qat],
+                [6, 64, 2, 1, self.qat],
+                # [6, 96, 3, 1, self.qat],
+                # [6, 160, 3, 1, self.qat],
+                # [6, 320, 1, 1, self.qat],
+            ]
+
+            if len(inverted_residual_setting) == 0 or len(inverted_residual_setting[0]) != 5:
+                raise ValueError("inverted_residual_setting should be non-empty "
+                                "or a 4-element list, got {}".format(inverted_residual_setting))
+
+            # building first layer
+            input_channel = _make_divisible(input_channel * width_mult, round_nearest)
+            self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), round_nearest)
+            features = [ConvBNReLU(3, input_channel, stride=2)]
+            # building inverted residual blocks
+            for t, c, n, s, q in inverted_residual_setting:
+                output_channel = _make_divisible(c * width_mult, round_nearest)
+                for i in range(n):
+                    stride = s if i == 0 else 1
+                    features.append(block(input_channel, output_channel, stride, expand_ratio=t, qat=q))
+                    input_channel = output_channel
+            # building last several layers
+            features.append(ConvBNReLU(input_channel, self.last_channel, kernel_size=1))
+            # make it nn.Sequential
+            self.features = nn.Sequential(*features)
+            out_channels = last_channel
+
         else:
             raise ValueError('Invalid architecture.')
 
@@ -94,8 +198,9 @@ class SqueezeDetBase(nn.Module):
     def forward(self, x):
         if self.qat:
             x = self.quant(x)
-        x = self.conv1(x)
-        x = self.relu1(x)
+        if self.arch=='squeezedet':
+            x = self.conv1(x)
+            x = self.relu1(x)
         x = self.features(x)
         if self.dropout is not None:
             x = self.dropout(x)
@@ -105,17 +210,30 @@ class SqueezeDetBase(nn.Module):
         if self.qat:
             x = self.dequant(x)
         return x
-
     def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                if m is self.convdet:
-                    nn.init.normal_(m.weight, mean=0.0, std=0.002)
-                else:
-                    nn.init.normal_(m.weight, mean=0.0, std=0.005)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-
+        if self.arch=='squeezedet':
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    if m is self.convdet:
+                        nn.init.normal_(m.weight, mean=0.0, std=0.002)
+                    else:
+                        nn.init.normal_(m.weight, mean=0.0, std=0.005)
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0)
+        elif self.arch=='mobilenet_v2':
+            # weight initialization
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    if m is self.convdet:
+                        nn.init.normal_(m.weight, mean=0.0, std=0.002)
+                    else:
+                        nn.init.kaiming_normal_(m.weight, mode='fan_out')
+                    if m.bias is not None:
+                        nn.init.zeros_(m.bias)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.ones_(m.weight)
+                    nn.init.zeros_(m.bias)
+                    
 
 class PredictionResolver(nn.Module):
     def __init__(self, cfg, log_softmax=False):
@@ -203,6 +321,7 @@ class SqueezeDetWithLoss(nn.Module):
         self.resolver = PredictionResolver(cfg, log_softmax=False)
         self.loss = Loss(cfg)
         self.detect = False
+        self.arch = cfg.arch
 
     def forward(self, batch):
         pred = self.base(batch['image'])
@@ -221,24 +340,46 @@ class SqueezeDetWithLoss(nn.Module):
             return det
 
     def fuse_model(self):
-        torch.quantization.fuse_modules(self.base, ['conv1', 'relu1'], inplace=True)
-        for m in self.base.features:    
-            if type(m) == Fire:
-                torch.quantization.fuse_modules(m, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)
-
-
+        if self.arch=='squeezedet':
+            torch.quantization.fuse_modules(self.base, ['conv1', 'relu1'], inplace=True)
+            for m in self.base.features:    
+                if type(m) == Fire:
+                    torch.quantization.fuse_modules(m, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)
+        elif self.arch=='mobilenet_v2':
+            # Fuse Conv+BN and Conv+BN+Relu modules prior to quantization
+            # This operation does not change the numerics
+            for m in self.base.modules():
+                if type(m) == ConvBNReLU:
+                    torch.quantization.fuse_modules(m, ['0', '1', '2'], inplace=True)
+                if type(m) == InvertedResidual:
+                    for idx in range(len(m.conv)):
+                        if type(m.conv[idx]) == nn.Conv2d:
+                            torch.quantization.fuse_modules(m.conv, [str(idx), str(idx + 1)], inplace=True)
 class SqueezeDet(nn.Module):
     """ Model for inference """
     def __init__(self, cfg):
         super(SqueezeDet, self).__init__()
         self.base = SqueezeDetBase(cfg)
+        self.arch = cfg.arch
+        self.qat = cfg.qat
 
     def forward(self, image):
         pred = self.base(image)
         return pred
     
     def fuse_model(self):
-        torch.quantization.fuse_modules(self.base, ['conv1', 'relu1'], inplace=True)
-        for m in self.base.features:    
-            if type(m) == Fire:
-                torch.quantization.fuse_modules(m, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)
+        if self.arch=='squeezedet':
+            torch.quantization.fuse_modules(self.base, ['conv1', 'relu1'], inplace=True)
+            for m in self.base.features:    
+                if type(m) == Fire:
+                    torch.quantization.fuse_modules(m, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)
+        elif self.arch=='mobilenet_v2':
+            # Fuse Conv+BN and Conv+BN+Relu modules prior to quantization
+            # This operation does not change the numerics
+            for m in self.base.modules():
+                if type(m) == ConvBNReLU:
+                    torch.quantization.fuse_modules(m, ['0', '1', '2'], inplace=True)
+                if type(m) == InvertedResidual:
+                    for idx in range(len(m.conv)):
+                        if type(m.conv[idx]) == nn.Conv2d:
+                            torch.quantization.fuse_modules(m.conv, [str(idx), str(idx + 1)], inplace=True)

@@ -46,7 +46,7 @@ class Trainer(object):
                 self.optimizer.zero_grad()
                 loss.backward()
                 throw_error = False
-                for param in self.model.parameters():
+                for name, param in self.model.named_parameters():
                     if not torch.isfinite(param.grad).all():
                         throw_error = True
                 if throw_error:
