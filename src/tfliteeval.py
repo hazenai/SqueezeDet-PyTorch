@@ -5,7 +5,7 @@ import os
 import tensorflow as tf
 import numpy as np
 from engine.detectortflite import DetectorTflite
-from model.squeezedet import SqueezeDet
+from model.squeezedet import SqueezeDetWithResolver
 from utils.config import Config
 from utils.model import load_model
 from utils.misc import load_dataset
@@ -25,7 +25,7 @@ def TfliteEval(cfg):
 
 def eval_dataset(dataset, model, cfg):
     
-    model = SqueezeDet(cfg)
+    model = SqueezeDetWithResolver(cfg)
     model.qconfig = torch.quantization.get_default_qat_qconfig('qnnpack')
     fused_model = copy.deepcopy(model)
     fused_model.fuse_model()

@@ -45,6 +45,45 @@ def deltas_to_boxes(deltas, anchors, input_size):
     return boxes_xyxy
 
 
+def deltas_to_boxes(deltas, anchors, input_size):
+    """
+    :param deltas: dxdydwdh format
+    :param anchors: xywh format
+    :param input_size: input image size in hw format
+    :return: boxes in xyxy format
+    """
+    boxes_xywh = torch.cat([
+        anchors[..., [0]] + anchors[..., [2]] * deltas[..., [0]],
+        anchors[..., [1]] + anchors[..., [3]] * deltas[..., [1]],
+        anchors[..., [2]] * torch.exp(deltas[..., [2]]),
+        anchors[..., [3]] * torch.exp(deltas[..., [3]])
+    ], dim=2)
+
+    boxes_xyxy = xywh_to_xyxy(boxes_xywh)
+    boxes_xyxy[..., [0, 2]] = torch.clamp(boxes_xyxy[..., [0, 2]], 0, input_size[1] - 1)
+    boxes_xyxy[..., [1, 3]] = torch.clamp(boxes_xyxy[..., [1, 3]], 0, input_size[0] - 1)
+
+    return boxes_xyxy
+
+
+def deltas_to_boxes_tflite(deltas, anchors, input_size):
+    """
+    :param deltas: dxdydwdh format
+    :param anchors: xywh format
+    :param input_size: input image size in hw format
+    :return: boxes in xyxy format
+    """
+    boxes_xywh = torch.cat([
+        anchors[..., [0]] + anchors[..., [2]] * deltas[..., [0]],
+        anchors[..., [1]] + anchors[..., [3]] * deltas[..., [1]],
+        anchors[..., [2]] * torch.exp(deltas[..., [2]]),
+        anchors[..., [3]] * torch.exp(deltas[..., [3]])
+    ], dim=2)
+
+    boxes_xyxy = xywh_to_xyxy(boxes_xywh)
+    return boxes_xyxy
+
+
 def compute_overlaps(boxes1, boxes2):
     """
     Compute IoUs between two sets of boxes.

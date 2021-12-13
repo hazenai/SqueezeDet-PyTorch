@@ -26,10 +26,11 @@ class DetectorTflite(object):
         tf_in = batch['image'].cpu().detach().numpy().transpose(0,2,3,1)
         self.model.set_tensor(inp_details[0]['index'], value=tf_in)
         self.model.invoke()
-        tfl_out1 = self.model.get_tensor(out_details[0]['index'])
-        pred = torch.from_numpy(tfl_out1)
-
-        pred_class_probs, _, pred_scores, _, pred_boxes = self.resolver(pred)
+        pred_boxes = torch.from_numpy(self.model.get_tensor(out_details[0]['index']))
+        pred_scores = torch.from_numpy(self.model.get_tensor(out_details[1]['index']))
+        pred_class_probs = torch.from_numpy(self.model.get_tensor(out_details[2]['index']))
+        
+        pred_boxes = xywh_to_xyxy(pred_boxes)
         pred_class_probs *= pred_scores
         pred_class_ids = torch.argmax(pred_class_probs, dim=2)
         pred_scores = torch.max(pred_class_probs, dim=2)[0]
@@ -174,3 +175,13 @@ def load_image(image_path):
     image = np.array(image).astype(np.float32)
     # image = skimage.io.imread(image_path).astype(np.float32)
     return image
+
+
+def xywh_to_xyxy(boxes_xywh):
+    # assert torch.all(boxes_xywh[..., [2, 3]] > 0)
+    return torch.cat([
+        boxes_xywh[..., [0]] - 0.5 * (boxes_xywh[..., [2]]),
+        boxes_xywh[..., [1]] - 0.5 * (boxes_xywh[..., [3]]),
+        boxes_xywh[..., [0]] + 0.5 * (boxes_xywh[..., [2]]),
+        boxes_xywh[..., [1]] + 0.5 * (boxes_xywh[..., [3]])
+    ], dim=-1)

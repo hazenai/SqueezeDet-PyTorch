@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 
-from model.modules import deltas_to_boxes, compute_overlaps, safe_softmax
+from model.modules import deltas_to_boxes, deltas_to_boxes_tflite, compute_overlaps, safe_softmax
+import torch.nn.functional as F
 
 EPSILON = 1E-10
 
@@ -258,6 +259,26 @@ class PredictionResolver(nn.Module):
         return pred_class_probs, pred_log_class_probs, pred_scores, pred_deltas, pred_boxes
 
 
+class PredictionResolverSingleClass(nn.Module):
+    def __init__(self, cfg, log_softmax=False):
+        super(PredictionResolverSingleClass, self).__init__()
+        self.log_softmax = log_softmax
+        self.input_size = cfg.input_size
+        self.num_classes = cfg.num_classes
+        self.anchors = torch.from_numpy(cfg.anchors).unsqueeze(0).float()
+        self.anchors_per_grid = cfg.anchors_per_grid
+
+    def forward(self, pred):
+        pred_class_probs = F.softmax(pred[..., :self.num_classes].contiguous(), dim=-1)
+
+        pred_scores = torch.sigmoid(pred[..., self.num_classes:self.num_classes + 1].contiguous())
+
+        pred_deltas = pred[..., self.num_classes + 1:].contiguous()
+        pred_boxes = deltas_to_boxes_tflite(pred_deltas, self.anchors.to(pred_deltas.device),
+                                     input_size=self.input_size)
+
+        return pred_class_probs, pred_scores, pred_boxes
+
 class Loss(nn.Module):
     def __init__(self, cfg):
         super(Loss, self).__init__()
@@ -383,3 +404,62 @@ class SqueezeDet(nn.Module):
                     for idx in range(len(m.conv)):
                         if type(m.conv[idx]) == nn.Conv2d:
                             torch.quantization.fuse_modules(m.conv, [str(idx), str(idx + 1)], inplace=True)
+
+
+class SqueezeDetWithResolver(nn.Module):
+    """ Model for inference """
+    def __init__(self, cfg):
+        super(SqueezeDetWithResolver, self).__init__()
+        self.base = SqueezeDetBase(cfg)
+        self.resolver = PredictionResolverSingleClass(cfg, log_softmax=False)
+        self.arch = cfg.arch
+        self.qat = cfg.qat
+        self.grid_size = cfg.grid_size
+        self.anchors_per_grid = cfg.anchors_per_grid
+        self.num_classes = cfg.num_classes
+
+
+    def forward(self, image):
+        pred = self.base(image)
+        pred_class_probs, pred_scores, pred_boxes = self.resolver(pred)
+        pred_boxes = xyxy_to_xywh(pred_boxes)
+        return pred_boxes, pred_scores, pred_class_probs
+
+    def fuse_model(self):
+        if self.arch=='squeezedet':
+            torch.quantization.fuse_modules(self.base, ['conv1', 'relu1'], inplace=True)
+            for m in self.base.features:    
+                if type(m) == Fire:
+                    torch.quantization.fuse_modules(m, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)
+        elif self.arch=='mobilenet_v2':
+            # Fuse Conv+BN and Conv+BN+Relu modules prior to quantization
+            # This operation does not change the numerics
+            for m in self.base.modules():
+                if type(m) == ConvBNReLU:
+                    torch.quantization.fuse_modules(m, ['0', '1', '2'], inplace=True)
+                if type(m) == InvertedResidual:
+                    for idx in range(len(m.conv)):
+                        if type(m.conv[idx]) == nn.Conv2d:
+                            torch.quantization.fuse_modules(m.conv, [str(idx), str(idx + 1)], inplace=True)
+
+
+    def format_output(self, pred_boxes, class_scores, obj):
+        batch_size = pred_boxes.shape[0]
+        output = torch.cat(
+            (
+                pred_boxes.view(batch_size, -1, 4),
+                obj.view(batch_size, -1, 1),
+                class_scores.view(batch_size, -1, self.num_classes)
+            ),
+            -1
+        )
+        return output
+
+
+def xyxy_to_xywh(boxes_xyxy):
+    return torch.cat([
+        (boxes_xyxy[..., [0]] + boxes_xyxy[..., [2]]) / 2.,
+        (boxes_xyxy[..., [1]] + boxes_xyxy[..., [3]]) / 2.,
+        boxes_xyxy[..., [2]] - boxes_xyxy[..., [0]],
+        boxes_xyxy[..., [3]] - boxes_xyxy[..., [1]]
+    ], dim=-1)
