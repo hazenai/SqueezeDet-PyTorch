@@ -14,19 +14,24 @@ class YOLO(BaseDataset):
     def __init__(self, phase, cfg):
         super(YOLO, self).__init__(phase, cfg)
 
-        self.input_size = (256, 448)  # (height, width), both dividable by 16
-        self.class_names = ('bike', 'car', 'bus')
+        self.input_size = (720, 1280)  # (height, width), both dividable by 16
+        self.class_names = ('0')
         # real_filtered mean and std
         # self.rgb_mean = np.array([94.87347, 96.89165, 94.70493], dtype=np.float32).reshape(1, 1, 3)
         # self.rgb_std = np.array([53.869507, 53.936283, 55.2807], dtype=np.float32).reshape(1, 1, 3)
         
         # real_filtered plus all_sites_seatbelt mean and std
-        self.rgb_mean = np.array([104.90631, 105.41336, 104.70162], dtype=np.float32).reshape(1, 1, 3)
-        self.rgb_std = np.array([50.69564, 49.60443, 50.158844], dtype=np.float32).reshape(1, 1, 3)
+        # self.rgb_mean = np.array([104.90631, 105.41336, 104.70162], dtype=np.float32).reshape(1, 1, 3)
+        # self.rgb_std = np.array([50.69564, 49.60443, 50.158844], dtype=np.float32).reshape(1, 1, 3)
+
+        # COTS
+        self.rgb_mean = np.array([58.855377, 146.88452, 165.97821 ], dtype=np.float32).reshape(1, 1, 3)
+        self.rgb_std = np.array([45.164417, 45.24216, 41.693596], dtype=np.float32).reshape(1, 1, 3)
+
         self.num_classes = len(self.class_names)
         self.class_ids_dict = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_names)}
 
-        self.data_dir = os.path.join(cfg.data_dir, 'all_real_plus_synth_8sites_plus_SVsynth_plus_seatbelt_plus_new_trajectory_data_kitti_format_5percentofwidth_filtered')
+        self.data_dir = os.path.join(cfg.data_dir, 'COTS_kitti_format')
         self.sample_ids, self.sample_set_path = self.get_sample_ids()
 
         self.grid_size = tuple(x // 16 for x in self.input_size)  # anchors grid 
@@ -34,10 +39,13 @@ class YOLO(BaseDataset):
         #                                 [109, 68], [84, 127], [155, 106], 
         #                                 [255, 145], [183, 215], [371, 221]], dtype=np.float32) ## real_filtered anchors
         
-        self.anchors_seed = np.array( [[ 32, 20], [ 61, 42], [ 59, 97],
-                                        [103, 66], [122, 114], [183, 96],
-                                        [160, 152], [211, 201], [343, 205]], dtype=np.float32) ## real_filtered plus all_sites_seatbelt anchors
+        # self.anchors_seed = np.array( [[ 32, 20], [ 61, 42], [ 59, 97],
+        #                                 [103, 66], [122, 114], [183, 96],
+        #                                 [160, 152], [211, 201], [343, 205]], dtype=np.float32) ## real_filtered plus all_sites_seatbelt anchors
 
+
+        self.anchors_seed = np.array( [[ 30, 26], [39, 37],  [55, 39],
+                                          [56, 54], [76, 66], [140, 118]], dtype=np.float32) ## COTS
         self.anchors = generate_anchors(self.grid_size, self.input_size, self.anchors_seed)
         self.anchors_per_grid = self.anchors_seed.shape[0]
         self.num_anchors = self.anchors.shape[0]

@@ -20,50 +20,57 @@ class BaseDataset(torch.utils.data.Dataset):
         self.phase = phase
         self.cfg = cfg
         self.seq = iaa.Sequential([
+            
+            iaa.SomeOf((0, 2),[
+                iaa.Flipud(1),
+                iaa.Fliplr(1),
+            ]),
+
             # Perspective/Affine
             iaa.Sometimes(
-                p=0.2,
+                p=0.4,
                 then_list=iaa.OneOf([
                         iaa.Affine(
-                                scale=(0.8, 1.2),
-                                rotate=(-5, 5),
-                                shear=(-2, 2),
+                                scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
+                                translate_percent={"x": (-0.15, 0.15), "y": (-0.15, 0.15)},
+                                rotate=(-20, 20),
+                                shear=(-15, 15),
+                                order=[0, 1],
+                                cval=(0, 255),
+                                mode=ia.ALL
                             ),
-                        iaa.PerspectiveTransform(scale=(0.02, 0.125)),
+                        iaa.PerspectiveTransform(scale=(0.1, 0.3)),
                     ])
             ),
-            iaa.Sometimes(
-                0.2,
-                iaa.OneOf([
-                    iaa.CropAndPad(percent=(-0.3, 0.3), pad_mode=ia.ALL),
-                ])
-            ),
 
             iaa.Sometimes(
                 0.3,
                 iaa.OneOf([
-                    iaa.GaussianBlur((0.0, 1.0)),
-                    iaa.AverageBlur((2,5)),
-                    iaa.MedianBlur((3,5))
-                ])
-            ),
-            
-            iaa.Sometimes(
-                0.3,
-                iaa.OneOf([
-                    iaa.imgcorruptlike.Fog(severity=1),
-                    iaa.imgcorruptlike.Snow(severity=1),
-                    iaa.imgcorruptlike.Frost(severity=1)
+                    iaa.CropAndPad(percent=(-0.4, 0.3), pad_mode=ia.ALL),
                 ])
             ),
 
             iaa.Sometimes(
-                0.2,
-                iaa.OneOf([
-                    iaa.ChangeColorTemperature((3500, 15000)),
+                p=0.1,
+                then_list=iaa.OneOf([
+                    ## Smoothing
+                    iaa.OneOf([
+                        iaa.pillike.FilterSmooth(),
+                        iaa.pillike.FilterSmoothMore()
+                    ]),
+                    ## Blurring
+                    iaa.OneOf([
+                        iaa.GaussianBlur((0.0, 1.0)),
+                        iaa.AverageBlur((2,5)),
+                        iaa.MedianBlur((3,5)),
+                    ]),
+                    ## Edge Enhancement
+                    iaa.OneOf([
+                        iaa.pillike.FilterEdgeEnhance(),
+                        iaa.pillike.FilterEdgeEnhanceMore(),
+                    ])
                 ])
             ),
-
 
         ],random_order=True)
 
@@ -104,8 +111,8 @@ class BaseDataset(torch.utils.data.Dataset):
             if boxes is not None:
                 if prob < 0.7:
                     image = Image.fromarray(cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_BGR2RGB))
-                    image = transforms.ColorJitter(brightness=(0.6,1.3), contrast=(0.6, 1.3),
-                                            saturation=(0.6, 1.3), hue=(-0.3, 0.3)) (image)
+                    image = transforms.ColorJitter(brightness=(0.8,1.2), contrast=(0.8, 1.2),
+                                            saturation=(0.8, 1.2), hue=(-0.1, 0.1)) (image)
                     image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
                     boxes_aug = []
                     for box, label in zip(boxes, class_ids):
@@ -124,12 +131,12 @@ class BaseDataset(torch.utils.data.Dataset):
                     if not len(boxes):
                         boxes = None
 
-        drift_prob = self.cfg.drift_prob if self.phase == 'train' else 0.
-        flip_prob = self.cfg.flip_prob if self.phase == 'train' else 0.
+        # drift_prob = self.cfg.drift_prob if self.phase == 'train' else 0.
+        # flip_prob = self.cfg.flip_prob if self.phase == 'train' else 0.
 
         image, image_meta = whiten(image, image_meta, mean=self.rgb_mean, std=self.rgb_std)
-        image, image_meta, boxes = drift(image, image_meta, prob=drift_prob, boxes=boxes)
-        image, image_meta, boxes = flip(image, image_meta, prob=flip_prob, boxes=boxes)
+        # image, image_meta, boxes = drift(image, image_meta, prob=drift_prob, boxes=boxes)
+        # image, image_meta, boxes = flip(image, image_meta, prob=flip_prob, boxes=boxes)
         if self.cfg.forbid_resize:
             image, image_meta, boxes = crop_or_pad(image, image_meta, self.input_size, boxes=boxes)
         else:

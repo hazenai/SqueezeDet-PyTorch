@@ -29,11 +29,13 @@ def train(cfg):
         else:
             model = load_model(model, cfg.load_model, cfg)
 
-    optimizer = torch.optim.SGD(model.parameters(),
+    optimizer = torch.optim.Adam(model.parameters(),
                                 lr=cfg.lr,
-                                momentum=cfg.momentum,
+                                betas=(0.9, 0.999),
+                                eps=1e-08,
                                 weight_decay=cfg.weight_decay)
-    lr_scheduler = StepLR(optimizer, 20, gamma=0.5)
+
+    lr_scheduler = StepLR(optimizer, cfg.num_epochs//5, gamma=0.5)
 
     trainer = Trainer(model, optimizer, lr_scheduler, cfg)
 
@@ -69,7 +71,7 @@ def train(cfg):
             logger.update(val_stats, phase='val', epoch=epoch, cfg=cfg)
 
             if not cfg.no_eval:
-                aps = eval_dataset(val_dataset, model, cfg)
+                aps = eval_dataset(val_dataset, save_path, cfg)
                 logger.update(aps, phase='val', epoch=epoch, cfg=cfg)
 
             value = val_stats['loss'] if cfg.no_eval else aps['mAP']

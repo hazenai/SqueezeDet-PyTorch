@@ -63,7 +63,7 @@ def main():
     cfg = Config().parse('eval --dataset yolo'.split(' '))
     dataset = load_dataset(cfg.dataset)('trainval', cfg)
 
-    anchors_seed = compute_dataset_anchors_seed(dataset)
+    anchors_seed = compute_dataset_anchors_seed(dataset,  anchors_per_grid=6)
 
     print('Dataset\'s anchors seed: ', anchors_seed)
 
