@@ -28,15 +28,15 @@ def ToOnnx(cfg):
     model = load_model(model, cfg.load_model, cfg)
         
 
-    inp = torch.rand([1,3,cfg.input_size[0], cfg.input_size[1]]).cuda()
+    inp = torch.rand([cfg.batch_size,3,cfg.input_size[0], cfg.input_size[1]]).cuda()
     
 
     inputs = ['input']
     outputs = ['pred_boxes', 'pred_scores', 'pred_class_probs']
 
-    dynamic_axes = {k: {0 : "batch_size"} for k in [*inputs,*outputs]}
-    onnx_path = os.path.join(cfg.save_dir, cfg.load_model.split('/')[-1][:-4] + '.onnx')
-    onnx_sim_path = os.path.join(cfg.save_dir, cfg.load_model.split('/')[-1][:-4] + '_sim.onnx')
+    # dynamic_axes = {k: {0 : "batch_size"} for k in [*inputs,*outputs]}
+    onnx_path = os.path.join(cfg.save_dir, cfg.load_model.split('/')[-1][:-4] + '_batch_size_' + str(cfg.batch_size) + '.onnx')
+    onnx_sim_path = os.path.join(cfg.save_dir, cfg.load_model.split('/')[-1][:-4]  + '_batch_size_' + str(cfg.batch_size) + '_sim.onnx')
     export(
         model.cuda(),
         inp,
@@ -46,7 +46,6 @@ def ToOnnx(cfg):
         do_constant_folding=True,
         input_names=inputs,
         output_names=outputs,
-        dynamic_axes=dynamic_axes
     )
 
     onnx_model = load(onnx_path)
@@ -56,7 +55,7 @@ def ToOnnx(cfg):
     debug("Simplifying ONNX model")
     onnx_model_sim, check = simplify(
         onnx_model,
-        input_shapes={"input": [1,3,cfg.input_size[0], cfg.input_size[1]]}
+        input_shapes={"input": [cfg.batch_size,3,cfg.input_size[0], cfg.input_size[1]]}
     )
     assert check, "Simplified ONNX model could not be validated"
 
