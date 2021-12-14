@@ -34,7 +34,7 @@ enum CLASSES{CAR=0, PEDESTRIAN=1, CYCLIST=2, LPR=3};
 
 // parameters varying per class
 vector<string> CLASS_NAMES;
-const double   MIN_OVERLAP[4] = {0.7, 0.5, 0.5, 0.5};                  // the minimum overlap required for evaluation
+const double   MIN_OVERLAP[4] = {0.7, 0.5, 0.5, 0.8};                  // the minimum overlap required for evaluation
 
 // no. of recall steps that should be evaluated (discretized)
 const double N_SAMPLE_PTS = 41;

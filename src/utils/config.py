@@ -22,6 +22,8 @@ class Config(object):
         # model
         self.parser.add_argument('--arch', default='squeezedet',
                                  help='model architecture: squeezedet | squeezedetplus')
+        self.parser.add_argument('--stride', type=int, default=16,
+                                 help='Network Stride')
         self.parser.add_argument('--dropout_prob', type=float, default=0,
                                  help='probability of dropout.')
 

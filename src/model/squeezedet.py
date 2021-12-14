@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from model.modules import deltas_to_boxes, compute_overlaps, safe_softmax
-
+from model.resnet import resnet50, wide_resnet50_2
 EPSILON = 1E-10
 
 
@@ -28,7 +28,6 @@ class SqueezeDetBase(nn.Module):
         super(SqueezeDetBase, self).__init__()
         self.num_classes = cfg.num_classes
         self.num_anchors = cfg.num_anchors
-
         if cfg.arch == 'squeezedet':
             self.features = nn.Sequential(
                 nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1),
@@ -47,6 +46,7 @@ class SqueezeDetBase(nn.Module):
                 Fire(512, 96, 384, 384),
                 Fire(768, 96, 384, 384)
             )
+            out_channels = 768
         elif cfg.arch == 'squeezedetplus':
             self.features = nn.Sequential(
                 nn.Conv2d(3, 96, kernel_size=7, stride=2, padding=3),
@@ -65,12 +65,16 @@ class SqueezeDetBase(nn.Module):
                 Fire(512, 384, 256, 256),
                 Fire(512, 384, 256, 256),
             )
+            out_channels = 512
+        elif cfg.arch == 'resnet50':
+            self.features = resnet50(pretrained=False)
+            out_channels = 2048
         else:
             raise ValueError('Invalid architecture.')
 
         self.dropout = nn.Dropout(cfg.dropout_prob, inplace=True) \
             if cfg.dropout_prob > 0 else None
-        self.convdet = nn.Conv2d(768 if cfg.arch == 'squeezedet' else 512,
+        self.convdet = nn.Conv2d(out_channels,
                                  cfg.anchors_per_grid * (cfg.num_classes + 5),
                                  kernel_size=3, padding=1)
 

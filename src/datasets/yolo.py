@@ -14,7 +14,7 @@ class YOLO(BaseDataset):
     def __init__(self, phase, cfg):
         super(YOLO, self).__init__(phase, cfg)
 
-        self.input_size = (720, 1280)  # (height, width), both dividable by 16
+        self.input_size = (736, 1280)  # (height, width), both dividable by 16
         self.class_names = ('0')
         # real_filtered mean and std
         # self.rgb_mean = np.array([94.87347, 96.89165, 94.70493], dtype=np.float32).reshape(1, 1, 3)
@@ -34,7 +34,7 @@ class YOLO(BaseDataset):
         self.data_dir = os.path.join(cfg.data_dir, 'COTS_kitti_format')
         self.sample_ids, self.sample_set_path = self.get_sample_ids()
 
-        self.grid_size = tuple(x // 16 for x in self.input_size)  # anchors grid 
+        self.grid_size = tuple(x // cfg.stride for x in self.input_size)  # anchors grid 
         # self.anchors_seed = np.array([[ 29, 17], [46, 32], [69, 52],
         #                                 [109, 68], [84, 127], [155, 106], 
         #                                 [255, 145], [183, 215], [371, 221]], dtype=np.float32) ## real_filtered anchors
