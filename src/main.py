@@ -16,6 +16,10 @@ elif cfg.mode == 'eval':
 elif cfg.mode == 'tfliteeval':
     from tfliteeval import TfliteEval
     TfliteEval(cfg)
+elif cfg.mode == 'onnx':
+    from toonnx import ToOnnx
+    ToOnnx(cfg)
+
 elif cfg.mode == 'demo':
     from demo import demo
     demo(cfg)
