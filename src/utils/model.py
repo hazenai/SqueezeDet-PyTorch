@@ -65,7 +65,10 @@ def load_official_model(model, model_path, cfg):
     state_dict = torch.load(model_path, map_location=lambda storage, loc: storage)
     layers = list(state_dict.keys())
     for layer in layers:
-        new_layer = 'base.' + layer
+        if model_path.endswith('95faca4d.pth') or model_path.endswith('19c8e357.pth'):
+            new_layer = 'base.features.' + layer
+        else:
+            new_layer = 'base.' + layer
         state_dict[new_layer] = state_dict.pop(layer)
 
     checkpoint = {'epoch': 0,
