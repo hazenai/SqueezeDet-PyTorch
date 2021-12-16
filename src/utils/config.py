@@ -10,7 +10,7 @@ class Config(object):
         self.parser.add_argument('mode',
                                  help='train | eval | demo')
         self.parser.add_argument('--dataset', default='yolo',
-                                 help='coco | kitti | yolo' )
+                                 help='coco | kitti | yolo | lpr' )
         self.parser.add_argument('--load_model', default='',
                                  help='path to pre-trained model')
         self.parser.add_argument('--debug', type=int, default=0,
