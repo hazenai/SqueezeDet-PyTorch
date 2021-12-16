@@ -45,8 +45,16 @@ class Trainer(object):
             if phase == 'train':
                 self.optimizer.zero_grad()
                 loss.backward()
+                throw_error = False
+                for name, param in self.model.named_parameters():
+                    if not torch.isfinite(param.grad).all():
+                        throw_error = True
+                if throw_error:
+                    print('backpropagating zero gradients')
+                    self.optimizer.zero_grad()
+
                 nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, self.model.parameters()),
-                                         self.cfg.grad_norm)
+                                        self.cfg.grad_norm)
                 self.optimizer.step()
 
             msg = 'epoch {0:<3s} {1:<5s} [{2}/{3}] '.format(str(epoch) + ':', phase, iter_id, num_iters)

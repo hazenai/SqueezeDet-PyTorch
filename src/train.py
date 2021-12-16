@@ -23,8 +23,9 @@ def train(cfg):
     logger = Logger(cfg)
 
     model = SqueezeDetWithLoss(cfg)
+
     if cfg.load_model != '':
-        if cfg.load_model.endswith('f364aa15.pth') or cfg.load_model.endswith('a815701f.pth') or cfg.load_model.endswith('19c8e357.pth') or cfg.load_model.endswith('95faca4d.pth'):
+        if cfg.load_model.endswith('f364aa15.pth') or cfg.load_model.endswith('a815701f.pth') or cfg.load_model.endswith('19c8e357.pth') or cfg.load_model.endswith('95faca4d.pth') or cfg.load_model.endswith('333f7ec4.pth') or cfg.load_model.endswith('b0353104.pth'): 
             model = load_official_model(model, cfg.load_model, cfg)
         else:
             model = load_model(model, cfg.load_model, cfg)

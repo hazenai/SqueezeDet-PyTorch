@@ -155,7 +155,7 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[0])
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2,
                                        dilate=replace_stride_with_dilation[1])
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, #expansion=2,
                                        dilate=replace_stride_with_dilation[2])
 
         for m in self.modules():
@@ -175,10 +175,13 @@ class ResNet(nn.Module):
                 elif isinstance(m, BasicBlock):
                     nn.init.constant_(m.bn2.weight, 0)
 
-    def _make_layer(self, block, planes, blocks, stride=1, dilate=False):
+    def _make_layer(self, block, planes, blocks, stride=1, expansion=None, dilate=False):
         norm_layer = self._norm_layer
         downsample = None
         previous_dilation = self.dilation
+        orig_expansion = block.expansion
+        if expansion is not None:
+            block.expansion = expansion
         if dilate:
             self.dilation *= stride
             stride = 1
@@ -197,6 +200,7 @@ class ResNet(nn.Module):
                                 base_width=self.base_width, dilation=self.dilation,
                                 norm_layer=norm_layer))
 
+        block.expansion = orig_expansion
         return nn.Sequential(*layers)
 
     def _forward_impl(self, x):
