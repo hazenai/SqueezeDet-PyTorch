@@ -10,9 +10,9 @@ from PIL import Image
 from torchvision.datasets.folder import default_loader
 
 
-class YOLO(BaseDataset):
+class LPR(BaseDataset):
     def __init__(self, phase, cfg):
-        super(YOLO, self).__init__(phase, cfg)
+        super(LPR, self).__init__(phase, cfg)
 
         self.input_size = (128, 128)  # (height, width), both dividable by 16
         self.class_names = ('0')

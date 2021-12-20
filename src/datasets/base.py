@@ -151,7 +151,8 @@ class BaseDataset(torch.utils.data.Dataset):
                'gt': gt}
 
         if self.cfg.debug == 1:
-            # image = image * image_meta['rgb_std'] + image_meta['rgb_mean']
+            if self.cfg.dataset=='yolo':
+                image_visualize = image_visualize * image_meta['rgb_std'] + image_meta['rgb_mean']
 
             save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
             visualize_boxes(image_visualize, gt_class_ids, gt_boxes,
@@ -210,7 +211,7 @@ class BaseDataset(torch.utils.data.Dataset):
             image_visualize = image
             image = image.transpose(2, 0, 1)
 
-        elif elf.cfg.dataset=='lpr':
+        elif self.cfg.dataset=='lpr':
             # LPR Specific
             image = Image.fromarray(cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_BGR2RGB))
             image_visualize = transforms.Grayscale(num_output_channels=3) (image)
@@ -220,7 +221,7 @@ class BaseDataset(torch.utils.data.Dataset):
         if boxes is not None:
             boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., image_meta['orig_size'][1] - 1.)
             boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., image_meta['orig_size'][0] - 1.)
-            elf.cfg.dataset=='lpr'
+            if self.cfg.dataset=='lpr':
                 inds = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]) >= 16
                 boxes = boxes[inds]
                 class_ids = class_ids[inds]

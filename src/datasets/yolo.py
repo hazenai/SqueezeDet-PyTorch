@@ -29,7 +29,7 @@ class YOLO(BaseDataset):
         self.data_dir = os.path.join(cfg.data_dir, 'all_real_plus_synth_8sites_plus_SVsynth_plus_seatbelt_plus_new_trajectory_data_kitti_format_5percentofwidth_filtered')
         self.sample_ids, self.sample_set_path = self.get_sample_ids()
 
-        self.grid_size = tuple(x // 16 for x in self.input_size)  # anchors grid 
+        self.grid_size = tuple(x //cfg.stride  for x in self.input_size)  # anchors grid 
         # self.anchors_seed = np.array([[ 29, 17], [46, 32], [69, 52],
         #                                 [109, 68], [84, 127], [155, 106], 
         #                                 [255, 145], [183, 215], [371, 221]], dtype=np.float32) ## real_filtered anchors

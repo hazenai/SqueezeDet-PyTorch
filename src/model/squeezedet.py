@@ -119,15 +119,15 @@ class SqueezeDetBase(nn.Module):
                 nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
                 Fire(128, 32, 128, 128, self.qat),
                 Fire(256, 32, 128, 128, self.qat),
-                nn.MaxPool2d(kernel_size=1, stride=1, ceil_mode=True),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
                 Fire(256, 48, 192, 192, self.qat),
                 Fire(384, 48, 192, 192, self.qat),
                 Fire(384, 64, 256, 256, self.qat),
                 Fire(512, 64, 256, 256, self.qat),
-                # Fire(512, 96, 384, 384, self.qat),
-                # Fire(768, 96, 384, 384, self.qat)
+                Fire(512, 96, 384, 384, self.qat),
+                Fire(768, 96, 384, 384, self.qat)
             )
-            out_channels = 512
+            out_channels = 768
         # elif cfg.arch == 'squeezedetplus':
         #     self.features = nn.Sequential(
         #         nn.Conv2d(3, 96, kernel_size=7, stride=2, padding=3),

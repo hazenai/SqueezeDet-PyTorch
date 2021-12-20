@@ -69,13 +69,13 @@ class Config(object):
                                  help='positive weight of score prediction loss.')
         self.parser.add_argument('--negative_score_loss_weight', type=float, default=100.,
                                  help='negative weight of score prediction loss.')
-        self.parser.add_argument('--bbox_loss_weight', type=float, default=6.,
+        self.parser.add_argument('--bbox_loss_weight', type=float, default=20.,
                                  help='weight of boxes regression loss.')
 
         # inference
-        self.parser.add_argument('--nms_thresh', type=float, default=0.01,
+        self.parser.add_argument('--nms_thresh', type=float, default=0.4,
                                  help='discards all overlapping boxes with IoU < nms_thresh.')
-        self.parser.add_argument('--score_thresh', type=float, default=0.6,
+        self.parser.add_argument('--score_thresh', type=float, default=0.5,
                                  help='discards all boxes with scores smaller than score_thresh.')
         self.parser.add_argument('--keep_top_k', type=int, default=64,
                                  help='keep top k detections before nms.')

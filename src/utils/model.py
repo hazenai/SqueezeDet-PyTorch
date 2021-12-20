@@ -21,6 +21,8 @@ def load_model(model, model_path, cfg):
             k = k.replace('base.features.10', 'base.features.8')
             k = k.replace('base.features.11', 'base.features.9')
             k = k.replace('base.features.12', 'base.features.10')
+            k = k.replace('base.features.13', 'base.features.11')
+            k = k.replace('base.features.14', 'base.features.12')
             dt[k] = v
 
         state_dict_ = dt
