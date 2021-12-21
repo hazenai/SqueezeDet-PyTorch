@@ -422,7 +422,7 @@ class SqueezeDetWithResolver(nn.Module):
     def forward(self, image):
         pred = self.base(image)
         pred_class_probs, pred_scores, pred_boxes = self.resolver(pred)
-        pred_boxes = xyxy_to_xywh(pred_boxes)
+        # pred_boxes = xyxy_to_xywh(pred_boxes)
         return pred_boxes, pred_scores, pred_class_probs
 
     def fuse_model(self):
