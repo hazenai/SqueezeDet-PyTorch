@@ -1,13 +1,16 @@
+import copy
 import os
 import torch
+import numpy as np
 from model.squeezedet import SqueezeDetWithResolver
 from torch.onnx import export
-from logging import debug
 from onnx import load, save
 from onnxsim import simplify
 from utils.misc import load_dataset
 from utils.config import Config
 from utils.model import load_model
+from utils.misc import get_logger
+logger = get_logger()
 
 
 def ToOnnx(cfg):
@@ -50,14 +53,33 @@ def ToOnnx(cfg):
 
     onnx_model = load(onnx_path)
     onnx_outputs = [node.name for node in onnx_model.graph.output]
-    debug(f"ONNX ouputs: {onnx_outputs}")
+    logger.debug(f"ONNX ouputs: {onnx_outputs}")
 
-    debug("Simplifying ONNX model")
+    logger.debug("Simplifying ONNX model")
     onnx_model_sim, check = simplify(
         onnx_model,
         input_shapes={"input": [cfg.batch_size,3,cfg.input_size[0], cfg.input_size[1]]}
     )
     assert check, "Simplified ONNX model could not be validated"
 
-    debug("Saving simplified ONNX model")
+    logger.debug("Saving simplified ONNX model")
     save(onnx_model_sim, onnx_sim_path)
+
+
+def model_equivalence(model_1, model_2, device, rtol=1e-05, atol=1e-08, num_tests=100, input_size=(1,3,32,32)):
+
+    model_1.to(device)
+    model_2.to(device)
+
+    for _ in range(num_tests):
+        x = torch.rand(size=input_size).to(device)
+
+        y1 = model_1.base(x).detach().cpu().numpy()
+        y2 = model_2.base(x).detach().cpu().numpy()
+        if np.allclose(a=y1, b=y2, rtol=rtol, atol=atol, equal_nan=False) == False:
+            print("Model equivalence test sample failed: ")
+            print(y1)
+            print(y2)
+            return False
+
+    return True
