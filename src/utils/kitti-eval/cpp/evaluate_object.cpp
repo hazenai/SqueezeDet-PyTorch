@@ -31,7 +31,7 @@ const int32_t MAX_OCCLUSION[3]  = {0, 1, 2};        // maximum occlusion level o
 const double  MAX_TRUNCATION[3] = {0.15, 0.3, 0.5}; // maximum truncation level of the groundtruth used for evaluation
 
 // evaluated object classes
-enum CLASSES{BIKE=0, CAR=1, BUS=2};
+enum CLASSES{object=0, CAR=1, BUS=2};
 
 // parameters varying per class
 vector<string> CLASS_NAMES;
@@ -42,7 +42,7 @@ const double N_SAMPLE_PTS = 41;
 
 // initialize class names
 void initGlobals () {
-  CLASS_NAMES.push_back("bike");
+  CLASS_NAMES.push_back("object");
   CLASS_NAMES.push_back("car");
   CLASS_NAMES.push_back("bus");
 }
@@ -64,7 +64,7 @@ struct tPrData {
 
 // holding bounding boxes for ground truth and detections
 struct tBox {
-  string  type;     // object type as bike, car or bus,...
+  string  type;     // object type as object, car or bus,...
   double   x1;      // left corner
   double   y1;      // top corner
   double   x2;      // right corner
@@ -103,7 +103,7 @@ struct tDetection {
 FUNCTIONS TO LOAD DETECTION AND GROUND TRUTH DATA ONCE, SAVE RESULTS
 =======================================================================*/
 
-vector<tDetection> loadDetections(string file_name, bool &compute_aos, bool &eval_bike, bool &eval_car, bool &eval_bus, bool &success) {
+vector<tDetection> loadDetections(string file_name, bool &compute_aos, bool &eval_object, bool &eval_car, bool &eval_bus, bool &success) {
 
   // holds all detections (ignored detections are indicated by an index vector
   vector<tDetection> detections;
@@ -129,8 +129,8 @@ vector<tDetection> loadDetections(string file_name, bool &compute_aos, bool &eva
         compute_aos = false;
 
       // a class is only evaluated if it is detected at least once
-      if(!eval_bike && !strcasecmp(d.box.type.c_str(), "bike"))
-        eval_bike = true;
+      if(!eval_object && !strcasecmp(d.box.type.c_str(), "object"))
+        eval_object = true;
       if(!eval_car && !strcasecmp(d.box.type.c_str(), "car"))
         eval_car = true;
       if(!eval_bus && !strcasecmp(d.box.type.c_str(), "bus"))
@@ -661,7 +661,7 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
 
   // holds wether orientation similarity shall be computed (might be set to false while loading detections)
   // and which labels where provided by this submission
-  bool compute_aos=true, eval_bike=false, eval_car=false, eval_bus=false;
+  bool compute_aos=true, eval_object=false, eval_car=false, eval_bus=false;
 
   // get image names
   FILE *fp = fopen( image_set_filename.c_str(),"r" );
@@ -693,7 +693,7 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
     // read ground truth and result poses
     bool gt_success,det_success;
     vector<tGroundtruth> gt   = loadGroundtruth(ospj(gt_dir,file_name),gt_success);
-    vector<tDetection>   det  = loadDetections(ospj(result_dir,"data",file_name), compute_aos, eval_bike, eval_car, eval_bus,det_success);
+    vector<tDetection>   det  = loadDetections(ospj(result_dir,"data",file_name), compute_aos, eval_object, eval_car, eval_bus,det_success);
     groundtruth.push_back(gt);
     detections.push_back(det);
 
@@ -712,24 +712,24 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
   // holds pointers for result files
   FILE *fp_det=0, *fp_ap=0, *fp_ori=0;
 
-  // eval bike
-  if(eval_bike){
-    fp_det = fopen((result_dir + "/stats_" + CLASS_NAMES[BIKE] + "_detection.txt").c_str(),"w");
-    fp_ap = fopen((result_dir + "/stats_" + CLASS_NAMES[BIKE] + "_ap.txt").c_str(),"w");
+  // eval object
+  if(eval_object){
+    fp_det = fopen((result_dir + "/stats_" + CLASS_NAMES[object] + "_detection.txt").c_str(),"w");
+    fp_ap = fopen((result_dir + "/stats_" + CLASS_NAMES[object] + "_ap.txt").c_str(),"w");
     if(compute_aos)
-      fp_ori = fopen((result_dir + "/stats_" + CLASS_NAMES[BIKE] + "_orientation.txt").c_str(),"w");
+      fp_ori = fopen((result_dir + "/stats_" + CLASS_NAMES[object] + "_orientation.txt").c_str(),"w");
     vector<double> precision[3], aos[3];
-    if( !eval_class(fp_det,fp_ap,fp_ori,BIKE,groundtruth,detections,compute_aos,precision[0],aos[0],EASY,N_TESTIMAGES)
-       || !eval_class(fp_det,fp_ap,fp_ori,BIKE,groundtruth,detections,compute_aos,precision[1],aos[1],MODERATE, N_TESTIMAGES)
-       || !eval_class(fp_det,fp_ap,fp_ori,BIKE,groundtruth,detections,compute_aos,precision[2],aos[2],HARD, N_TESTIMAGES)){
-      mail->msg("Bike evaluation failed.");
+    if( !eval_class(fp_det,fp_ap,fp_ori,object,groundtruth,detections,compute_aos,precision[0],aos[0],EASY,N_TESTIMAGES)
+       || !eval_class(fp_det,fp_ap,fp_ori,object,groundtruth,detections,compute_aos,precision[1],aos[1],MODERATE, N_TESTIMAGES)
+       || !eval_class(fp_det,fp_ap,fp_ori,object,groundtruth,detections,compute_aos,precision[2],aos[2],HARD, N_TESTIMAGES)){
+      mail->msg("object evaluation failed.");
       return false;
     }
     fclose(fp_det);
     fclose(fp_ap);
-    saveAndPlotPlots(plot_dir,CLASS_NAMES[BIKE] + "_detection",CLASS_NAMES[BIKE],precision,0);
+    saveAndPlotPlots(plot_dir,CLASS_NAMES[object] + "_detection",CLASS_NAMES[object],precision,0);
     if(compute_aos){
-      saveAndPlotPlots(plot_dir,CLASS_NAMES[BIKE] + "_orientation",CLASS_NAMES[BIKE],aos,1);
+      saveAndPlotPlots(plot_dir,CLASS_NAMES[object] + "_orientation",CLASS_NAMES[object],aos,1);
       fclose(fp_ori);
     }
   }

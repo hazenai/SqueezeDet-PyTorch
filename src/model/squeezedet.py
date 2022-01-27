@@ -152,16 +152,16 @@ class SqueezeDetBase(nn.Module):
             round_nearest=8
             block = InvertedResidual
             input_channel = 32
-            last_channel = 256
+            last_channel = 1280
             inverted_residual_setting = [
                 # t, c, n, s
                 [1, 16, 1, 1, self.qat],
                 [6, 24, 2, 2, self.qat],
                 [6, 32, 3, 2, self.qat],
-                [6, 64, 4, 1, self.qat],
-                # [6, 96, 3, 1, self.qat],
-                # [6, 160, 3, 1, self.qat],
-                # [6, 320, 1, 1, self.qat],
+                [6, 64, 4, 2, self.qat],
+                [6, 96, 3, 1, self.qat],
+                [6, 160, 3, 1, self.qat],
+                [6, 320, 1, 1, self.qat],
             ]
 
             if len(inverted_residual_setting) == 0 or len(inverted_residual_setting[0]) != 5:

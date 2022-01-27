@@ -75,7 +75,7 @@ class Config(object):
         # inference
         self.parser.add_argument('--nms_thresh', type=float, default=0.4,
                                  help='discards all overlapping boxes with IoU < nms_thresh.')
-        self.parser.add_argument('--score_thresh', type=float, default=0.5,
+        self.parser.add_argument('--score_thresh', type=float, default=0.3,
                                  help='discards all boxes with scores smaller than score_thresh.')
         self.parser.add_argument('--keep_top_k', type=int, default=64,
                                  help='keep top k detections before nms.')

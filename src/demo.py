@@ -9,7 +9,7 @@ import torch.utils.data
 
 from datasets.yolo import YOLO
 from engine.detector import Detector
-from model.squeezedet import SqueezeDet
+from model.squeezedet import SqueezeDet, SqueezeDetWithLoss
 from utils.config import Config
 from utils.model import load_model
 from PIL import Image
@@ -17,7 +17,7 @@ from PIL import Image
 
 def demo(cfg):
     # prepare configurations
-    cfg.load_model = '../exp/real_filtered_3class/model_best.pth'
+    cfg.load_model = '../exp/exp1_real+synthv2+synthv2_SB_class_agnostic_mobv2_cont/model_best.pth'
     cfg.gpus = [0]  # -1 to use CPU
     cfg.debug = 2  # to visualize detection boxes
     dataset = YOLO('val', cfg)
@@ -28,13 +28,14 @@ def demo(cfg):
     del dataset
 
     # prepare model & detector
-    model = SqueezeDet(cfg)
-    model = load_model(model, cfg.load_model)
+    model = SqueezeDetWithLoss(cfg)
+    model = load_model(model, cfg.load_model, cfg)
+    model.detect = True
     detector = Detector(model.to(cfg.device), cfg)
 
     # prepare images
-    sample_images_dir = '/home/hazen/workspace/datasets/redspeed/image_2'
-    sample_image_paths = glob.glob(os.path.join(sample_images_dir, '*.jpg'))
+    sample_images_dir = '/home/hazen/workspace/datasets/trajectory_test_sites/Delta-United/frames'
+    sample_image_paths = glob.glob(os.path.join(sample_images_dir, '*.png'))
 
     # detection
     for path in tqdm.tqdm(sample_image_paths):
@@ -48,7 +49,9 @@ def demo(cfg):
                       'orig_size': np.array(image.shape, dtype=np.int32)}
 
         image, _ , image_meta, _, _= preprocess_func(image, image_meta)
-        # image = torch.from_numpy(image.transpose(2, 0, 1)).unsqueeze(0).to(cfg.device)
+        image = torch.from_numpy(image).unsqueeze(0).to(cfg.device)
+        # print(image.shape)
+        # raise()
         image_meta = {k: torch.from_numpy(v).unsqueeze(0).to(cfg.device) if isinstance(v, np.ndarray)
                       else [v] for k, v in image_meta.items()}
 

@@ -21,7 +21,7 @@ class DatasetWrapper(torch.utils.data.Dataset):
                       'image_id': image_id,
                       'orig_size': np.array(image.shape, dtype=np.int32)}
         
-        image, image_meta, gt_boxes,_ = self.dataset.preprocess(image, image_meta, gt_boxes)
+        image, _, image_meta, gt_boxes, _ = self.dataset.preprocess(image, image_meta, gt_boxes)
         if gt_boxes is None:
             gt_boxes = np.empty([0, 4]).astype(np.float32)
         return gt_boxes

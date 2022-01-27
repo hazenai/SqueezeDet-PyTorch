@@ -176,18 +176,18 @@ def visualize_boxes(image, class_ids, boxes, scores=None, class_names=None, save
             class_id = class_ids[i]
             bbox = boxes[i].astype(np.uint32).tolist()
             image = cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]),
-                                class_colors[class_id].tolist(), 2)
+                                class_colors[class_id].tolist(), 1)
 
             class_name = class_names[class_id] if class_names is not None else 'class_{}'.format(class_id)
             text = '{} {:.2f}'.format(class_name, scores[i]) if scores is not None else class_name
             font = cv2.FONT_HERSHEY_SIMPLEX
-            text_size = cv2.getTextSize(text, font, fontScale=.5, thickness=1)[0]
+            text_size = cv2.getTextSize(text, font, fontScale=.3, thickness=1)[0]
             image = cv2.rectangle(image,
                                 (bbox[0], bbox[1] - text_size[1] - 8),
                                 (bbox[0] + text_size[0] + 8, bbox[1]),
                                 class_colors[class_id].tolist(), -1)
             image = cv2.putText(image, text, (bbox[0] + 4, bbox[1] - 4), font,
-                                fontScale=.5, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+                                fontScale=.3, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
 
         if show:
             title = '{} (press any key to continue)'.format(os.path.basename(save_path))

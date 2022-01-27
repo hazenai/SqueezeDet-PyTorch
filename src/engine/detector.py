@@ -17,10 +17,11 @@ class Detector(object):
         self.model = model.to(cfg.device)
         self.model.eval()
         self.cfg = cfg
-        if self.cfg.dataset=='lpr':
-            self.data_dir = os.path.join(self.cfg.data_dir, 'lpr_crop/merged_data')
-        elif self.cfg.dataset=='yolo':
-            self.data_dir = os.path.join(self.cfg.data_dir, 'all_real_plus_synth_8sites_plus_SVsynth_plus_seatbelt_plus_new_trajectory_data_kitti_format_5percentofwidth_filtered')
+        self.data_dir = '/home/hazen/workspace/datasets/trajectory_test_sites/Delta-United/frames'
+        # if self.cfg.dataset=='lpr':
+        #     self.data_dir = os.path.join(self.cfg.data_dir, 'lpr_crop/merged_data')
+        # elif self.cfg.dataset=='yolo':
+        #     self.data_dir = os.path.join(self.cfg.data_dir, 'all_real_plus_synth_8sites_plus_SVsynth_plus_seatbelt_plus_new_trajectory_data_kitti_format_5percentofwidth_filtered')
     
     def detect(self, batch):
         dets = self.model(batch)
@@ -43,7 +44,8 @@ class Detector(object):
             det['image_meta'] = image_meta
             results.append(det)
             if self.cfg.debug == 2:
-                image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else 'training/image_2', image_meta['image_id'] + '.png'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.jpg')
+                image_path = os.path.join(self.data_dir, image_meta['image_id'] + '.png')
+                # image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else 'training/image_2', image_meta['image_id'] + '.png'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.jpg')
                 image_visualize = load_image(image_path)
                 save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
                 visualize_boxes(image_visualize, det['class_ids'], det['boxes'], det['scores'],
@@ -120,8 +122,7 @@ class Detector(object):
         filtered_class_ids = torch.cat(filtered_class_ids)
         filtered_scores = torch.cat(filtered_scores)
         filtered_boxes = torch.cat(filtered_boxes, dim=0)
-
-        keeps = filtered_scores > self.cfg.score_thresh
+        keeps = (filtered_scores > self.cfg.score_thresh) & ((filtered_boxes[..., 3] - filtered_boxes[..., 1])>=8.0) & ((filtered_boxes[..., 2] - filtered_boxes[..., 0])>=8.0)
         if torch.sum(keeps) == 0:
             det = None
         else:
