@@ -279,9 +279,9 @@ class PredictionResolverSingleClass(nn.Module):
 
         return pred_class_probs, pred_scores, pred_boxes
 
-class Loss(nn.Module):
+class RPNLoss(nn.Module):
     def __init__(self, cfg):
-        super(Loss, self).__init__()
+        super(RPNLoss, self).__init__()
         self.resolver = PredictionResolver(cfg, log_softmax=True)
         self.num_anchors = cfg.num_anchors
         self.class_loss_weight = cfg.class_loss_weight
@@ -289,24 +289,21 @@ class Loss(nn.Module):
         self.negative_score_loss_weight = cfg.negative_score_loss_weight
         self.bbox_loss_weight = cfg.bbox_loss_weight
 
-    def forward(self, pred, gt):
+    def forward(self, gt, pred_boxes, pred_deltas, pred_scores):
         # slice gt tensor
         anchor_masks = gt[..., :1]
         gt_boxes = gt[..., 1:5]  # xyxy format
         gt_deltas = gt[..., 5:9]
         gt_class_logits = gt[..., 9:]
 
-        # resolver predictions
-        pred_class_probs, pred_log_class_probs, pred_scores, pred_deltas, pred_boxes = self.resolver(pred)
-
         num_objects = torch.sum(anchor_masks, dim=[1, 2])
         num_objects = num_objects + 1
         overlaps = compute_overlaps(gt_boxes, pred_boxes) * anchor_masks
 
-        class_loss = torch.sum(
-            self.class_loss_weight * anchor_masks * gt_class_logits * (-pred_log_class_probs),
-            dim=[1, 2],
-        ) / num_objects
+        # class_loss = torch.sum(
+        #     self.class_loss_weight * anchor_masks * gt_class_logits * (-pred_log_class_probs),
+        #     dim=[1, 2],
+        # ) / num_objects
 
         positive_score_loss = torch.sum(
             self.positive_score_loss_weight * anchor_masks * (overlaps - pred_scores) ** 2,
@@ -323,15 +320,15 @@ class Loss(nn.Module):
             dim=[1, 2],
         ) / num_objects
 
-        loss = class_loss + positive_score_loss + negative_score_loss + bbox_loss
+        # loss = class_loss + positive_score_loss + negative_score_loss + bbox_loss
         loss_stat = {
-            'loss': loss,
-            'class_loss': class_loss,
+            # 'loss': loss,
+            # 'class_loss': class_loss,
             'score_loss': positive_score_loss + negative_score_loss,
             'bbox_loss': bbox_loss
         }
 
-        return loss, loss_stat
+        return loss_stat
 
 
 class SqueezeDetWithLoss(nn.Module):
@@ -340,15 +337,31 @@ class SqueezeDetWithLoss(nn.Module):
         super(SqueezeDetWithLoss, self).__init__()
         self.base = SqueezeDetBase(cfg)
         self.resolver = PredictionResolver(cfg, log_softmax=False)
-        self.loss = Loss(cfg)
+        self.lossresolver = PredictionResolver(cfg, log_softmax=True)
+        self.rpnloss = RPNLoss(cfg)
         self.detect = False
         self.arch = cfg.arch
 
     def forward(self, batch):
         pred = self.base(batch['image'])
         if not self.detect:
-            loss, loss_stats = self.loss(pred, batch['gt'])
-            return loss, loss_stats
+            # resolver predictions
+            pred_class_probs, pred_log_class_probs, pred_scores, pred_deltas, pred_boxes = self.lossresolver(pred)
+            rpn_loss_stats = self.rpnloss(batch['gt'], pred_boxes, pred_deltas, pred_scores)
+            pred_class_ids = torch.argmax(pred_class_probs, dim=2)
+            dets = {'class_ids': pred_class_ids,
+                'scores': pred_scores,
+                'boxes': pred_boxes}
+            batch_size = dets['class_ids'].shape[0]
+            for b in range(batch_size):
+                image_meta = {k: v[b].cpu().numpy() if not isinstance(v, list) else v[b]
+                            for k, v in batch['image_meta'].items()}
+
+                det = {k: v[b] for k, v in dets.items()}
+                det = self.filter(det)
+                
+                #TODO Add det back in dets dictionary and apply roialign
+            return rpn_loss_stats
         
         else:
             pred_class_probs, _, pred_scores, _, pred_boxes = self.resolver(pred)
@@ -376,6 +389,44 @@ class SqueezeDetWithLoss(nn.Module):
                     for idx in range(len(m.conv)):
                         if type(m.conv[idx]) == nn.Conv2d:
                             torch.quantization.fuse_modules(m.conv, [str(idx), str(idx + 1)], inplace=True)
+
+    def filter(self, det):
+            orders = torch.argsort(det['scores'], descending=True)[:self.cfg.keep_top_k]
+            class_ids = det['class_ids'][orders]
+            scores = det['scores'][orders]
+            boxes = det['boxes'][orders, :]
+
+            # class-wise nms
+            filtered_class_ids, filtered_scores, filtered_boxes = [], [], []
+            for cls_id in range(self.cfg.num_classes):
+                idx_cur_class = (class_ids == cls_id)
+                if torch.sum(idx_cur_class) == 0:
+                    continue
+
+                class_ids_cur_class = class_ids[idx_cur_class]
+                scores_cur_class = scores[idx_cur_class]
+                boxes_cur_class = boxes[idx_cur_class, :]
+
+                keeps = nms(boxes_cur_class, scores_cur_class, self.cfg.nms_thresh)
+
+                filtered_class_ids.append(class_ids_cur_class[keeps])
+                filtered_scores.append(scores_cur_class[keeps])
+                filtered_boxes.append(boxes_cur_class[keeps, :])
+
+            filtered_class_ids = torch.cat(filtered_class_ids)
+            filtered_scores = torch.cat(filtered_scores)
+            filtered_boxes = torch.cat(filtered_boxes, dim=0)
+            keeps = (filtered_scores > self.cfg.score_thresh) & ((filtered_boxes[..., 3] - filtered_boxes[..., 1])>=8.0) & ((filtered_boxes[..., 2] - filtered_boxes[..., 0])>=8.0)
+            if torch.sum(keeps) == 0:
+                det = None
+            else:
+                det = {'class_ids': filtered_class_ids[keeps],
+                    'scores': filtered_scores[keeps],
+                    'boxes': filtered_boxes[keeps, :]}
+
+            return det
+
+
 class SqueezeDet(nn.Module):
     """ Model for inference """
     def __init__(self, cfg):
