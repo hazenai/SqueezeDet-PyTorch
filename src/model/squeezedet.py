@@ -1,9 +1,12 @@
 import torch
 import torch.nn as nn
-
+from model.mobilenetv2 import _make_divisible, ConvBNReLU, InvertedResidual, MobileNetV2
 from model.modules import deltas_to_boxes, deltas_to_boxes_tflite, compute_overlaps, safe_softmax
 import torch.nn.functional as F
-
+from torchvision.ops import nms
+import torch.nn.functional as F
+from utils.roialign import RoIAlign
+from utils.selecttrainingsamples import SelectTrainingSamples
 EPSILON = 1E-10
 
 
@@ -32,72 +35,6 @@ class Fire(nn.Module):
                 self.activation_3(self.expand3x3(x))
             ], dim=1)
         return x
-
-
-def _make_divisible(v, divisor, min_value=None):
-    """
-    This function is taken from the original tf repo.
-    It ensures that all layers have a channel number that is divisible by 8
-    It can be seen here:
-    https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
-    :param v:
-    :param divisor:
-    :param min_value:
-    :return:
-    """
-    if min_value is None:
-        min_value = divisor
-    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
-    # Make sure that round down does not go down by more than 10%.
-    if new_v < 0.9 * v:
-        new_v += divisor
-    return new_v
-
-
-class ConvBNReLU(nn.Sequential):
-    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1):
-        padding = (kernel_size - 1) // 2
-        super(ConvBNReLU, self).__init__(
-            nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=False),
-            nn.BatchNorm2d(out_planes, momentum=0.1),
-            # Replace with ReLU
-            nn.ReLU(inplace=False)
-        )
-
-
-class InvertedResidual(nn.Module):
-    def __init__(self, inp, oup, stride, expand_ratio, qat):
-        super(InvertedResidual, self).__init__()
-        self.stride = stride
-        self.qat = qat
-        assert stride in [1, 2]
-
-        hidden_dim = int(round(inp * expand_ratio))
-        self.use_res_connect = self.stride == 1 and inp == oup
-
-        layers = []
-        if expand_ratio != 1:
-            # pw
-            layers.append(ConvBNReLU(inp, hidden_dim, kernel_size=1))
-        layers.extend([
-            # dw
-            ConvBNReLU(hidden_dim, hidden_dim, stride=stride, groups=hidden_dim),
-            # pw-linear
-            nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(oup, momentum=0.1),
-        ])
-        self.conv = nn.Sequential(*layers)
-        # Replace torch.add with floatfunctional
-        self.skip_add = nn.quantized.FloatFunctional()
-
-    def forward(self, x):
-        if self.use_res_connect:
-            if self.qat:
-                return self.skip_add.add(x, self.conv(x))
-            else:
-                return torch.add(x, self.conv(x))
-        else:
-            return self.conv(x)
 
 
 class SqueezeDetBase(nn.Module):
@@ -240,7 +177,7 @@ class PredictionResolver(nn.Module):
     def __init__(self, cfg, log_softmax=False):
         super(PredictionResolver, self).__init__()
         self.log_softmax = log_softmax
-        self.input_size = cfg.input_size
+        self.infer_size = cfg.resized_image_size
         self.num_classes = cfg.num_classes
         self.anchors = torch.from_numpy(cfg.anchors).unsqueeze(0).float()
         self.anchors_per_grid = cfg.anchors_per_grid
@@ -253,8 +190,8 @@ class PredictionResolver(nn.Module):
         pred_scores = torch.sigmoid(pred[..., self.num_classes:self.num_classes + 1].contiguous())
 
         pred_deltas = pred[..., self.num_classes + 1:].contiguous()
-        pred_boxes = deltas_to_boxes(pred_deltas, self.anchors.to(pred_deltas.device),
-                                     input_size=self.input_size)
+        pred_boxes = deltas_to_boxes(pred_deltas.detach(), self.anchors.to(pred_deltas.device),
+                                     input_size=self.infer_size)
 
         return pred_class_probs, pred_log_class_probs, pred_scores, pred_deltas, pred_boxes
 
@@ -282,14 +219,14 @@ class PredictionResolverSingleClass(nn.Module):
 class RPNLoss(nn.Module):
     def __init__(self, cfg):
         super(RPNLoss, self).__init__()
-        self.resolver = PredictionResolver(cfg, log_softmax=True)
+        # self.resolver = PredictionResolver(cfg, log_softmax=True)
         self.num_anchors = cfg.num_anchors
         self.class_loss_weight = cfg.class_loss_weight
         self.positive_score_loss_weight = cfg.positive_score_loss_weight
         self.negative_score_loss_weight = cfg.negative_score_loss_weight
         self.bbox_loss_weight = cfg.bbox_loss_weight
 
-    def forward(self, gt, pred_boxes, pred_deltas, pred_scores):
+    def forward(self, gt, pred_boxes, pred_deltas, pred_scores, pred_log_class_probs):
         # slice gt tensor
         anchor_masks = gt[..., :1]
         gt_boxes = gt[..., 1:5]  # xyxy format
@@ -300,10 +237,10 @@ class RPNLoss(nn.Module):
         num_objects = num_objects + 1
         overlaps = compute_overlaps(gt_boxes, pred_boxes) * anchor_masks
 
-        # class_loss = torch.sum(
-        #     self.class_loss_weight * anchor_masks * gt_class_logits * (-pred_log_class_probs),
-        #     dim=[1, 2],
-        # ) / num_objects
+        rpn_class_loss = torch.sum(
+            self.class_loss_weight * anchor_masks * gt_class_logits * (-pred_log_class_probs),
+            dim=[1, 2],
+        ) / num_objects
 
         positive_score_loss = torch.sum(
             self.positive_score_loss_weight * anchor_masks * (overlaps - pred_scores) ** 2,
@@ -320,15 +257,23 @@ class RPNLoss(nn.Module):
             dim=[1, 2],
         ) / num_objects
 
-        # loss = class_loss + positive_score_loss + negative_score_loss + bbox_loss
-        loss_stat = {
-            # 'loss': loss,
-            # 'class_loss': class_loss,
-            'score_loss': positive_score_loss + negative_score_loss,
-            'bbox_loss': bbox_loss
-        }
+        
+        score_loss = (positive_score_loss + negative_score_loss).mean()
+        bbox_loss = bbox_loss.mean()
+        rpn_class_loss = rpn_class_loss.mean()
+        return bbox_loss, score_loss, rpn_class_loss
 
-        return loss_stat
+
+class ROILoss(nn.Module): 
+    def __init__(self, cfg):
+        super(ROILoss, self).__init__()
+        self.cfg = cfg
+
+    def forward(self, labels, cls_scores):
+        classification_loss = []
+        for i in range(cls_scores.shape[0]):
+            classification_loss.append(F.cross_entropy(cls_scores[i], labels[i], ignore_index=-1, reduction='mean'))
+        return sum(classification_loss)/len(classification_loss)
 
 
 class SqueezeDetWithLoss(nn.Module):
@@ -339,18 +284,36 @@ class SqueezeDetWithLoss(nn.Module):
         self.resolver = PredictionResolver(cfg, log_softmax=False)
         self.lossresolver = PredictionResolver(cfg, log_softmax=True)
         self.rpnloss = RPNLoss(cfg)
+        self.roialign = RoIAlign(input_size=cfg.input_size, infer_size = cfg.resized_image_size, output_size = cfg.crop_size, spatial_scale=1.0)
+        self.classifier = MobileNetV2(num_classes=cfg.num_classes, width_mult=1.0, inverted_residual_setting=None, round_nearest=8, qat=cfg.qat)
+        self.selectrrainingsamples = SelectTrainingSamples(cfg)
+        self.roiloss = ROILoss(cfg)
         self.detect = False
         self.arch = cfg.arch
+        self.cfg = cfg
 
     def forward(self, batch):
-        pred = self.base(batch['image'])
+        images = batch['image']
+        resized_images = F.interpolate(
+                    images,
+                    size=self.cfg.resized_image_size,
+                    mode='bilinear',
+                    align_corners=False)
+
+        pred = self.base(resized_images)
+
+        filtered_scores = []
+        # filtered_class_ids = []
+        filtered_boxes = []
         if not self.detect:
             # resolver predictions
             pred_class_probs, pred_log_class_probs, pred_scores, pred_deltas, pred_boxes = self.lossresolver(pred)
-            rpn_loss_stats = self.rpnloss(batch['gt'], pred_boxes, pred_deltas, pred_scores)
-            pred_class_ids = torch.argmax(pred_class_probs, dim=2)
+            bbox_loss, score_loss, rpn_class_loss = self.rpnloss(batch['gt'], pred_boxes, pred_deltas, pred_scores, pred_log_class_probs)
+            pred_scores_copy  = pred_scores.detach().clone()
+            pred_scores_copy = pred_scores_copy.squeeze(dim=2)
+            pred_class_ids = torch.argmax(pred_class_probs.detach().clone(), dim=2)
             dets = {'class_ids': pred_class_ids,
-                'scores': pred_scores,
+                'scores': pred_scores_copy,
                 'boxes': pred_boxes}
             batch_size = dets['class_ids'].shape[0]
             for b in range(batch_size):
@@ -359,18 +322,62 @@ class SqueezeDetWithLoss(nn.Module):
 
                 det = {k: v[b] for k, v in dets.items()}
                 det = self.filter(det)
-                
-                #TODO Add det back in dets dictionary and apply roialign
-            return rpn_loss_stats
-        
+                # filtered_scores.append(det['scores'])
+                # filtered_class_ids.append(det['class_ids'])
+                filtered_boxes.append(det['boxes'])
+            # filtered_scores = torch.stack(filtered_scores)
+            # filtered_class_ids = torch.stack(filtered_class_ids)
+            filtered_boxes = torch.stack(filtered_boxes)
+            proposals, labels = self.selectrrainingsamples(batch['gt'], filtered_boxes)
+            proposals = torch.stack(proposals)
+            roi_boxes = self.roialign(batch['image'], proposals)
+            cls_scores = self.classifier(roi_boxes)
+            cls_scores = cls_scores.view(batch_size, -1, self.cfg.num_classes)
+            cls_scores = torch.log_softmax(cls_scores, dim=-1)
+
+            roi_class_loss = self.roiloss(labels, cls_scores)
+            # classification_loss= roi_class_loss + rpn_class_loss
+            classification_loss= roi_class_loss
+            loss = score_loss + bbox_loss + classification_loss
+            loss_stat = {
+                'loss':loss,
+                'score_loss':score_loss,
+                'bbox_loss':bbox_loss,
+                'class_loss': classification_loss,
+            }
+            return loss, loss_stat
+
         else:
-            pred_class_probs, _, pred_scores, _, pred_boxes = self.resolver(pred)
-            pred_class_probs *= pred_scores
-            pred_class_ids = torch.argmax(pred_class_probs, dim=2)
-            pred_scores = torch.max(pred_class_probs, dim=2)[0]
-            det = {'class_ids': pred_class_ids,
-                'scores': pred_scores,
+            pred_class_probs, pred_log_class_probs, pred_scores, pred_deltas, pred_boxes = self.resolver(pred)
+            pred_scores_copy  = pred_scores.detach().clone()
+            pred_scores_copy = pred_scores_copy.squeeze(dim=2)
+            pred_class_ids = torch.argmax(pred_class_probs.detach().clone(), dim=2)
+            dets = {'class_ids': pred_class_ids,
+                'scores': pred_scores_copy,
                 'boxes': pred_boxes}
+            batch_size = dets['class_ids'].shape[0]
+            for b in range(batch_size):
+                det = {k: v[b] for k, v in dets.items()}
+                det = self.filter(det)
+                filtered_scores.append(det['scores'])
+                # filtered_class_ids.append(det['class_ids'])
+                filtered_boxes.append(det['boxes'])
+            filtered_scores = torch.stack(filtered_scores)
+            # filtered_class_ids = torch.stack(filtered_class_ids)
+            filtered_boxes = torch.stack(filtered_boxes)
+            roi_boxes = self.roialign(batch['image'], filtered_boxes.clone())
+            cls_scores = self.classifier(roi_boxes)
+            cls_scores = cls_scores.view(batch_size, -1, self.cfg.num_classes)
+            cls_scores = safe_softmax(cls_scores, dim=-1)
+            
+            # pred_class_probs *= pred_scores
+            pred_roi_class_scores , pred_roi_class_ids = torch.max(cls_scores, dim=2)
+            # pred_scores = torch.max(pred_class_probs, dim=2)[0]
+
+            det = { 'class_ids': pred_roi_class_ids,
+                    'class_scores': pred_roi_class_scores,
+                    'scores': filtered_scores,
+                    'boxes': filtered_boxes}
             return det
 
     def fuse_model(self):
@@ -391,6 +398,8 @@ class SqueezeDetWithLoss(nn.Module):
                             torch.quantization.fuse_modules(m.conv, [str(idx), str(idx + 1)], inplace=True)
 
     def filter(self, det):
+
+            ## Pre NMS TopK
             orders = torch.argsort(det['scores'], descending=True)[:self.cfg.keep_top_k]
             class_ids = det['class_ids'][orders]
             scores = det['scores'][orders]
@@ -416,13 +425,17 @@ class SqueezeDetWithLoss(nn.Module):
             filtered_class_ids = torch.cat(filtered_class_ids)
             filtered_scores = torch.cat(filtered_scores)
             filtered_boxes = torch.cat(filtered_boxes, dim=0)
-            keeps = (filtered_scores > self.cfg.score_thresh) & ((filtered_boxes[..., 3] - filtered_boxes[..., 1])>=8.0) & ((filtered_boxes[..., 2] - filtered_boxes[..., 0])>=8.0)
-            if torch.sum(keeps) == 0:
-                det = None
-            else:
-                det = {'class_ids': filtered_class_ids[keeps],
-                    'scores': filtered_scores[keeps],
-                    'boxes': filtered_boxes[keeps, :]}
+
+            # ## Score Thresholding ##
+            # keeps = (filtered_scores > self.cfg.score_thresh) #& ((filtered_boxes[..., 3] - filtered_boxes[..., 1])>=8.0) & ((filtered_boxes[..., 2] - filtered_boxes[..., 0])>=8.0)
+            # filtered_class_ids = filtered_class_ids[keeps]
+            # filtered_scores = filtered_scores[keeps]
+            # filtered_boxes = filtered_boxes[keeps, :]
+
+            ## Post NMS TopK
+            det = {'class_ids': filtered_class_ids[:self.cfg.post_nms_top_k],
+                'scores': filtered_scores[:self.cfg.post_nms_top_k],
+                'boxes': filtered_boxes[:self.cfg.post_nms_top_k, :]}
 
             return det
 

@@ -5,7 +5,7 @@ import sys
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-
+plt.switch_backend('agg')
 
 class Logger(object):
     def __init__(self, cfg):

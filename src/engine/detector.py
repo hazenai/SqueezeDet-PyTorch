@@ -17,7 +17,6 @@ class Detector(object):
         self.model = model.to(cfg.device)
         self.model.eval()
         self.cfg = cfg
-        self.data_dir = '/home/hazen/workspace/datasets/trajectory_test_sites/Delta-United/frames'
         # if self.cfg.dataset=='lpr':
         #     self.data_dir = os.path.join(self.cfg.data_dir, 'lpr_crop/merged_data')
         # elif self.cfg.dataset=='yolo':
@@ -40,11 +39,19 @@ class Detector(object):
                 continue
 
             det = {k: v.cpu().detach().numpy() for k, v in det.items()}
+
+            boxes = det['boxes']
+            boxes[:,0] = (boxes[:,0]/self.cfg.resized_image_size[1])*self.cfg.input_size[1]
+            boxes[:,1] = (boxes[:,1]/self.cfg.resized_image_size[0])*self.cfg.input_size[0]
+            boxes[:,2] = (boxes[:,2]/self.cfg.resized_image_size[1])*self.cfg.input_size[1]
+            boxes[:,3] = (boxes[:,3]/self.cfg.resized_image_size[0])*self.cfg.input_size[0]
+            det['boxes'] = boxes
+    
             det['boxes'] = boxes_postprocess(det['boxes'], image_meta)
             det['image_meta'] = image_meta
             results.append(det)
             if self.cfg.debug == 2:
-                image_path = os.path.join(self.data_dir, image_meta['image_id'] + '.png')
+                image_path = os.path.join(self.cfg.data_dir, 'training/image_2', image_meta['image_id'] + '.png')
                 # image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else 'training/image_2', image_meta['image_id'] + '.png'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.jpg')
                 image_visualize = load_image(image_path)
                 save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
@@ -97,38 +104,27 @@ class Detector(object):
         return results
 
     def filter(self, det):
-        orders = torch.argsort(det['scores'], descending=True)[:self.cfg.keep_top_k]
-        class_ids = det['class_ids'][orders]
-        scores = det['scores'][orders]
-        boxes = det['boxes'][orders, :]
+        # orders = torch.argsort(det['scores'], descending=True)[:self.cfg.keep_top_k]
+        class_ids = det['class_ids']
+        class_scores = det['class_scores']
+        scores = det['scores']
+        boxes = det['boxes']
+        
+        ## obj_score_threshold
+        # print(scores)
+        # & (class_ids != 0)
+        keeps = (scores > self.cfg.score_thresh) & (class_scores > self.cfg.class_score_thresh)
+        class_ids = class_ids[keeps]
+        class_scores = class_scores[keeps]
+        scores = scores[keeps]
+        boxes = boxes[keeps]
 
-        # class-wise nms
-        filtered_class_ids, filtered_scores, filtered_boxes = [], [], []
-        for cls_id in range(self.cfg.num_classes):
-            idx_cur_class = (class_ids == cls_id)
-            if torch.sum(idx_cur_class) == 0:
-                continue
-
-            class_ids_cur_class = class_ids[idx_cur_class]
-            scores_cur_class = scores[idx_cur_class]
-            boxes_cur_class = boxes[idx_cur_class, :]
-
-            keeps = nms(boxes_cur_class, scores_cur_class, self.cfg.nms_thresh)
-
-            filtered_class_ids.append(class_ids_cur_class[keeps])
-            filtered_scores.append(scores_cur_class[keeps])
-            filtered_boxes.append(boxes_cur_class[keeps, :])
-
-        filtered_class_ids = torch.cat(filtered_class_ids)
-        filtered_scores = torch.cat(filtered_scores)
-        filtered_boxes = torch.cat(filtered_boxes, dim=0)
-        keeps = (filtered_scores > self.cfg.score_thresh) & ((filtered_boxes[..., 3] - filtered_boxes[..., 1])>=8.0) & ((filtered_boxes[..., 2] - filtered_boxes[..., 0])>=8.0)
         if torch.sum(keeps) == 0:
             det = None
         else:
-            det = {'class_ids': filtered_class_ids[keeps],
-                   'scores': filtered_scores[keeps],
-                   'boxes': filtered_boxes[keeps, :]}
+            det = {'class_ids': class_ids,
+                   'scores': scores,
+                   'boxes': boxes}
 
         return det
 

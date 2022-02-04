@@ -201,8 +201,8 @@ class BaseDataset(torch.utils.data.Dataset):
             drift_prob = self.cfg.drift_prob if self.phase == 'train' else 0.
             flip_prob = self.cfg.flip_prob if self.phase == 'train' else 0.
             image, image_meta = whiten(image, image_meta, mean=self.rgb_mean, std=self.rgb_std)
-            image, image_meta, boxes = drift(image, image_meta, prob=drift_prob, boxes=boxes)
-            image, image_meta, boxes = flip(image, image_meta, prob=flip_prob, boxes=boxes)
+            # image, image_meta, boxes = drift(image, image_meta, prob=drift_prob, boxes=boxes)
+            # image, image_meta, boxes = flip(image, image_meta, prob=flip_prob, boxes=boxes)
             if self.cfg.forbid_resize:
                 image, image_meta, boxes = crop_or_pad(image, image_meta, self.input_size, boxes=boxes)
             else:
@@ -227,7 +227,11 @@ class BaseDataset(torch.utils.data.Dataset):
                 class_ids = class_ids[inds]
                 if not len(boxes):
                     boxes = None
-
+        if boxes is not None:
+            boxes[:,[0]] = (boxes[:, [0]]/self.cfg.input_size[1])*self.cfg.resized_image_size[1]
+            boxes[:,[1]] = (boxes[:, [1]]/self.cfg.input_size[0])*self.cfg.resized_image_size[0]
+            boxes[:,[2]] = (boxes[:, [2]]/self.cfg.input_size[1])*self.cfg.resized_image_size[1]
+            boxes[:,[3]] = (boxes[:, [3]]/self.cfg.input_size[0])*self.cfg.resized_image_size[0]
         return image, image_visualize, image_meta, boxes, class_ids
 
     def prepare_annotations(self, class_ids, boxes):
@@ -237,6 +241,7 @@ class BaseDataset(torch.utils.data.Dataset):
         :return: np.ndarray(#anchors, #classes + 9)
         """
         gt = np.zeros((self.num_anchors, self.num_classes + 9), dtype=np.float32)
+
         if boxes is not None:
             deltas, anchor_indices = compute_deltas(boxes, self.anchors)
             gt[anchor_indices, 0] = 1.  # mask

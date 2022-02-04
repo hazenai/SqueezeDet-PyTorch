@@ -341,6 +341,7 @@ class CommonGraph(object):
 
         self.check()
         import matplotlib.pyplot as plt
+        plt.switch_backend('agg')
         _, axs = plt.subplots()
 
         if hide_constants:

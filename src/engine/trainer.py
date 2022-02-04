@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from utils.data_parallel import DataParallel
 from utils.misc import MetricLogger
-
+from torchviz import make_dot
 
 class Trainer(object):
     def __init__(self, model, optimizer, lr_scheduler, cfg):
@@ -40,13 +40,19 @@ class Trainer(object):
             end = time.time()
 
             loss, loss_stats = self.model(batch)
-            loss = loss.mean()
+            # make_dot(loss, params=dict(self.model.named_parameters())).render("attached.png")
+
+            # loss = loss.mean()
 
             if phase == 'train':
                 self.optimizer.zero_grad()
                 loss.backward()
                 throw_error = False
                 for name, param in self.model.named_parameters():
+                    # if param.grad is not None:
+                    #     print('{}:{}'.format(name, 'Yes'))
+                    # else:
+                    #     print('{}:{}'.format(name, None))
                     if not torch.isfinite(param.grad).all():
                         throw_error = True
                 if throw_error:
@@ -58,7 +64,8 @@ class Trainer(object):
 
             msg = 'epoch {0:<3s} {1:<5s} [{2}/{3}] '.format(str(epoch) + ':', phase, iter_id, num_iters)
             for m in metric_loggers:
-                value = loss_stats[m].mean().item()
+                # value = loss_stats[m].mean().item()
+                value = loss_stats[m]
                 metric_loggers[m].update(value, batch['image'].shape[0])
                 msg += '| {} {:.3f} '.format(m, value)
 

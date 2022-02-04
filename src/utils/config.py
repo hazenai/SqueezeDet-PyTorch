@@ -11,6 +11,13 @@ class Config(object):
                                  help='train | eval | demo')
         self.parser.add_argument('--dataset', default='yolo',
                                  help='coco | kitti | yolo | lpr' )
+        self.parser.add_argument('--input_size', type = tuple, default=(384,1280),
+                                 help='image size in height, width format')
+        self.parser.add_argument('--resized_image_size', type = tuple, default=(256,448),
+                                 help='Riszed image size (detector input) in height, width format')
+        self.parser.add_argument('--crop_size', type = tuple, default=(128,128),
+                                 help='Crop size (classifier input) in height, width format')
+
         self.parser.add_argument('--load_model', default='',
                                  help='path to pre-trained model')
         self.parser.add_argument('--debug', type=int, default=0,
@@ -32,7 +39,7 @@ class Config(object):
     
         self.parser.add_argument('--qat', action='store_true',
                                  help='Quantization Aware Training with pytorch fake quantizer')
-        self.parser.add_argument('--lr', type=float, default=0.001,
+        self.parser.add_argument('--lr', type=float, default=0.0001,
                                  help='learning rate for batch size 32.')
         self.parser.add_argument('--momentum', type=float, default=0.9,
                                  help='momentum of SGD.')
@@ -77,8 +84,13 @@ class Config(object):
                                  help='discards all overlapping boxes with IoU < nms_thresh.')
         self.parser.add_argument('--score_thresh', type=float, default=0.3,
                                  help='discards all boxes with scores smaller than score_thresh.')
-        self.parser.add_argument('--keep_top_k', type=int, default=64,
+        self.parser.add_argument('--class_score_thresh', type=float, default=0.3,
+                                 help='discards all boxes with class scores smaller than score_thresh.')
+        self.parser.add_argument('--keep_top_k', type=int, default=2000,
                                  help='keep top k detections before nms.')
+        self.parser.add_argument('--post_nms_top_k', type=int, default=64,
+                                 help='keep top k detections before nms.')
+
 
         # system
         self.parser.add_argument('--gpus', default='0',
@@ -136,7 +148,8 @@ class Config(object):
 
     @staticmethod
     def update_dataset_info(cfg, dataset):
-        cfg.input_size = dataset.input_size
+        # cfg.input_size = dataset.input_size
+        cfg.data_dir = dataset.data_dir
         cfg.grid_size = dataset.grid_size
         cfg.rgb_mean = dataset.rgb_mean
         cfg.rgb_std = dataset.rgb_std
