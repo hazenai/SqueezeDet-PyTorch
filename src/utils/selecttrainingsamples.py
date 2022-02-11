@@ -5,10 +5,11 @@ from torchvision.ops import boxes as box_ops
 
 class SelectTrainingSamples:
     def __init__(self, cfg):
-        fg_iou_thresh = 0.5
-        bg_iou_thresh = 0.2
+        _ = cfg
+        fg_iou_thresh = 0.4
+        bg_iou_thresh = 0.4
         box_positive_fraction = 0.8
-        box_batch_size_per_image = 32
+        box_batch_size_per_image = 64
 
         self.proposal_matcher = Matcher(fg_iou_thresh, bg_iou_thresh, allow_low_quality_matches=False)
         self.fg_bg_sampler = BalancedPositiveNegativeSampler(box_batch_size_per_image, box_positive_fraction)
@@ -28,7 +29,7 @@ class SelectTrainingSamples:
         # append ground-truth bboxes to propos
         proposals = self.add_gt_proposals(proposals, gt_boxes)
         # get matching gt indices for each proposal
-        matched_idxs, labels = self.assign_targets_to_proposals(proposals, gt_boxes, gt_labels)
+        _, labels = self.assign_targets_to_proposals(proposals, gt_boxes, gt_labels)
         # sample a fixed proportion of positive-negative proposals
         sampled_inds = self.subsample(labels)
         num_images = len(proposals)
@@ -85,7 +86,7 @@ class SelectTrainingSamples:
         # type: (List[Tensor]) -> List[Tensor]
         sampled_pos_inds, sampled_neg_inds = self.fg_bg_sampler(labels)
         sampled_inds = []
-        for img_idx, (pos_inds_img, neg_inds_img) in enumerate(zip(sampled_pos_inds, sampled_neg_inds)):
+        for _, (pos_inds_img, neg_inds_img) in enumerate(zip(sampled_pos_inds, sampled_neg_inds)):
             img_sampled_inds = torch.where(pos_inds_img | neg_inds_img)[0]
             sampled_inds.append(img_sampled_inds)
         return sampled_inds

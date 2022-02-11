@@ -15,8 +15,6 @@ def eval(cfg):
     Config().print(cfg)
 
     aps = eval_dataset(dataset, cfg.load_model, cfg)
-    for k, v in aps.items():
-        print('{:<20} {:.3f}'.format(k, v))
 
     torch.cuda.empty_cache()
 
@@ -37,12 +35,9 @@ def eval_dataset(dataset, model, cfg):
     model.detect = True
     detector = Detector(model, cfg)
 
-    results = detector.detect_dataset(dataset, cfg)
-    dataset.save_results(results)
-    aps = dataset.evaluate()
+    aps = detector.detect_dataset(dataset, cfg)
     model.detect = detect
     return aps
-
 
 def model_equivalence(model_1, model_2, device, rtol=1e-05, atol=1e-08, num_tests=100, input_size=(1,3,32,32)):
 

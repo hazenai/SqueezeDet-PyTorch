@@ -42,8 +42,8 @@ def train(cfg):
                                 eps=1e-08,
                                 weight_decay=cfg.weight_decay)
 
-    lr_scheduler = StepLR(optimizer, cfg.num_epochs//5, gamma=0.5)
-
+    # lr_scheduler = StepLR(optimizer, cfg.num_epochs//5, gamma=0.5)
+    lr_scheduler = StepLR(optimizer, 10, gamma=0.5)
     trainer = Trainer(model, optimizer, lr_scheduler, cfg)
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
@@ -58,7 +58,7 @@ def train(cfg):
                                              num_workers=cfg.num_workers,
                                              pin_memory=True)
 
-    metrics = trainer.metrics if cfg.no_eval else trainer.metrics + ['mAP']
+    metrics = trainer.metrics if cfg.no_eval else trainer.metrics + ['map@50']
     best = 1E9 if cfg.no_eval else 0
     better_than = operator.lt if cfg.no_eval else operator.gt
 
@@ -89,7 +89,7 @@ def train(cfg):
                 aps = eval_dataset(val_dataset, model, cfg)
                 logger.update(aps, phase='val', epoch=epoch, cfg=cfg)
 
-            value = val_stats['loss'] if cfg.no_eval else aps['mAP']
+            value = val_stats['loss'] if cfg.no_eval else aps['map@50']
             if better_than(value, best):
                 best = value
                 save_path = os.path.join(cfg.save_dir, 'model_best.pth')

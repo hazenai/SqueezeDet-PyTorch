@@ -11,13 +11,15 @@ class Config(object):
                                  help='train | eval | demo')
         self.parser.add_argument('--dataset', default='yolo',
                                  help='coco | kitti | yolo | lpr' )
-        self.parser.add_argument('--input_size', type = tuple, default=(384,1280),
+        self.parser.add_argument('--input_size', type = tuple, default=(1080,1920),
                                  help='image size in height, width format')
         self.parser.add_argument('--resized_image_size', type = tuple, default=(256,448),
                                  help='Riszed image size (detector input) in height, width format')
         self.parser.add_argument('--crop_size', type = tuple, default=(128,128),
                                  help='Crop size (classifier input) in height, width format')
-
+        self.parser.add_argument('--object_size_thresh', type = tuple, default=(4,4),
+                                 help='Object Size Thresholds in (h,w) format.\n'
+                                      'Objects resized at 256*448 which are smaller than threshold on one are both dimensions will be discarded')
         self.parser.add_argument('--load_model', default='',
                                  help='path to pre-trained model')
         self.parser.add_argument('--debug', type=int, default=0,
@@ -80,17 +82,25 @@ class Config(object):
                                  help='weight of boxes regression loss.')
 
         # inference
-        self.parser.add_argument('--nms_thresh', type=float, default=0.4,
+        self.parser.add_argument('--keep_top_k', type=int, default=2000,
+                                 help='keep top k detections before nms.')
+        self.parser.add_argument('--nms_thresh_train', type=float, default=0.7,
                                  help='discards all overlapping boxes with IoU < nms_thresh.')
+        self.parser.add_argument('--nms_thresh_test', type=float, default=0.4,
+                                 help='discards all overlapping boxes with IoU < nms_thresh.')
+        self.parser.add_argument('--post_nms_top_k_train', type=int, default=128,
+                                 help='keep top k detections after nms.')
+        self.parser.add_argument('--post_nms_top_k_test', type=int, default=64,
+                                 help='keep top k detections after nms.')
         self.parser.add_argument('--score_thresh', type=float, default=0.3,
                                  help='discards all boxes with scores smaller than score_thresh.')
         self.parser.add_argument('--class_score_thresh', type=float, default=0.3,
                                  help='discards all boxes with class scores smaller than score_thresh.')
-        self.parser.add_argument('--keep_top_k', type=int, default=2000,
-                                 help='keep top k detections before nms.')
-        self.parser.add_argument('--post_nms_top_k', type=int, default=64,
-                                 help='keep top k detections before nms.')
-
+       
+        self.parser.add_argument('--classagnostic_map', action='store_true', help='Compute Class Agnostic mAP')
+        self.parser.add_argument('--plots', action='store_true', help='save metric curves')
+        self.parser.add_argument('--save_txt', action='store_true', help='save results to *.txt')
+        self.parser.add_argument('--save_conf', action='store_true', help='save confidences in --save-txt labels')
 
         # system
         self.parser.add_argument('--gpus', default='0',
