@@ -136,14 +136,26 @@ class BaseDataset(torch.utils.data.Dataset):
             ],random_order=True)
 
     def __getitem__(self, index):
-        image, image_id = self.load_image(index)
+        image, image_id, image_path = self.load_image(index)
         gt_class_ids, gt_boxes = self.load_annotations(index)
+        if self.cfg.dataset=='yolo':
+            h,w = image.shape[:2]
+            if gt_boxes is not None:
+                # Denormalze
+                gt_boxes[:, 0] = gt_boxes[:, 0] * w
+                gt_boxes[:, 1] = gt_boxes[:, 1] * h
+                gt_boxes[:, 2] = gt_boxes[:, 2] * w
+                gt_boxes[:, 3] = gt_boxes[:, 3] * h
+                #xywh to xyxy
+                gt_boxes = xywh_to_xyxy(gt_boxes)
 
         image_meta = {'index': index,
                       'image_id': image_id,
+                      'image_path': image_path,
                       'orig_size': np.array(image.shape, dtype=np.int32)}
         
         image, image_visualize, image_meta, gt_boxes, gt_class_ids = self.preprocess(image, image_meta, gt_boxes, gt_class_ids)
+
         gt = self.prepare_annotations(gt_class_ids, gt_boxes)
 
         inp = {'image': image,
@@ -198,8 +210,8 @@ class BaseDataset(torch.utils.data.Dataset):
 
         if self.cfg.dataset=='yolo':
             # Trajectory Specific
-            drift_prob = self.cfg.drift_prob if self.phase == 'train' else 0.
-            flip_prob = self.cfg.flip_prob if self.phase == 'train' else 0.
+            # drift_prob = self.cfg.drift_prob if self.phase == 'train' else 0.
+            # flip_prob = self.cfg.flip_prob if self.phase == 'train' else 0.
             image, image_meta = whiten(image, image_meta, mean=self.rgb_mean, std=self.rgb_std)
             # image, image_meta, boxes = drift(image, image_meta, prob=drift_prob, boxes=boxes)
             # image, image_meta, boxes = flip(image, image_meta, prob=flip_prob, boxes=boxes)
@@ -219,8 +231,8 @@ class BaseDataset(torch.utils.data.Dataset):
             image_visualize = cv2.cvtColor(np.array(image_visualize), cv2.COLOR_RGB2BGR)
 
         if boxes is not None:
-            boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., image_meta['orig_size'][1] - 1.)
-            boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., image_meta['orig_size'][0] - 1.)
+            boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., self.cfg.input_size[1] - 1.)
+            boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., self.cfg.input_size[0] - 1.)
             if self.cfg.dataset=='lpr':
                 inds = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]) >= 16
                 boxes = boxes[inds]
@@ -265,3 +277,15 @@ class BaseDataset(torch.utils.data.Dataset):
 
     def evaluate(self):
         raise NotImplementedError
+
+
+def xywh_to_xyxy(boxes_xywh):
+    assert np.ndim(boxes_xywh) == 2
+    # assert np.all(boxes_xywh > 0)
+
+    return np.concatenate([
+        boxes_xywh[:, [0]] - 0.5 * (boxes_xywh[:, [2]]),
+        boxes_xywh[:, [1]] - 0.5 * (boxes_xywh[:, [3]]),
+        boxes_xywh[:, [0]] + 0.5 * (boxes_xywh[:, [2]]),
+        boxes_xywh[:, [1]] + 0.5 * (boxes_xywh[:, [3]])
+    ], axis=1)

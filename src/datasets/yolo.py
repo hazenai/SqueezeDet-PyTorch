@@ -8,15 +8,50 @@ from datasets.base import BaseDataset
 from utils.boxes import generate_anchors
 from PIL import Image
 from torchvision.datasets.folder import default_loader
+from pathlib import Path
+import glob
+import random
+IMG_FORMATS = ['jpg', 'jpeg', 'png']  # acceptable image suffixes
 
 
 class YOLO(BaseDataset):
     def __init__(self, phase, cfg):
         super(YOLO, self).__init__(phase, cfg)
-
+        self.cfg = cfg
         self.input_size = cfg.input_size  # (height, width), both dividable by 16
         self.resized_image_size = cfg.resized_image_size
-        self.class_names = ['background', 'Car', 'Pedestrian', 'Cyclist']
+        self.data_root = '/home/hazen/workspace/datasets/yolo_format'
+        data_dict = {
+            'train':{
+                    # 'alhajjcam0_yolo/data/train.txt': -1,
+                    # 'alhajjcam1_yolo/data/train.txt': -1,
+                    # 'detrac_yolo/data/train.txt': -1
+                    # 'idd_yolo/data/train.txt': 5000,
+                    # 'bdd_yolo/data/train.txt': 5000,
+                    # 'riyad_yolo/data/train.txt': -1,
+                    # 'kitti_yolo/data/train.txt': -1,
+                    'nuimages_yolo/data/train.txt': -1,
+                    # 'karachi_yolo/data/train.txt': -1,
+
+                    },
+            'val':{
+                    'detrac_yolo/data/val.txt': 50
+                },
+        }
+
+        
+        self.all_class_names =  [
+            'person', 'bicycle', 'car', 'motorcycle', 'bus',
+            'train', 'truck', 'trailer', 'autorickshaw', 'trafficlight',
+            'trafficsign', 'animal', 'van', 'rider', 'not_a_class'
+        ]
+
+        self.map_class_names = [
+            'person', 'bike', 'car', 'bike', 'bus',
+            'not_a_class', 'truck', 'truck', 'not_a_class', 'not_a_class',
+            'not_a_class', 'not_a_class', 'bus', 'person', 'not_a_class'
+        ]
+        self.class_names = ['background', 'person', 'bike', 'car', 'bus', 'truck']
         # Kitti mean
         self.rgb_mean = np.array([93.877, 98.801, 95.923], dtype=np.float32).reshape(1, 1, 3)
         self.rgb_std = np.array([78.782, 80.130, 81.200], dtype=np.float32).reshape(1, 1, 3)
@@ -36,8 +71,8 @@ class YOLO(BaseDataset):
         self.num_classes = len(self.class_names)
         self.class_ids_dict = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_names)}
 
-        self.data_dir = os.path.join(cfg.data_dir, 'kitti')
-        self.sample_ids, self.sample_set_path = self.get_sample_ids()
+        # self.data_dir = os.path.join(cfg.data_dir, 'kitti')
+        self.sample_ids= self.get_sample_ids(data_dict)
 
         self.grid_size = tuple(x //cfg.stride  for x in self.resized_image_size)  # anchors grid 
         self.anchors_seed = np.array([[ 29, 17], [46, 32], [69, 52],
@@ -58,47 +93,49 @@ class YOLO(BaseDataset):
 
         self.results_dir = os.path.join(cfg.save_dir, 'results')
 
-    def get_sample_ids(self):
-        sample_set_name = 'train.txt' if self.phase == 'train' \
-            else 'val.txt' if self.phase == 'val' \
-            else 'train.txt' if self.phase == 'trainval' \
+    def get_sample_ids(self, data_dict):
+        
+        sample_set_name = 'train' if self.phase == 'train' \
+            else 'val' if self.phase == 'val' \
+            else 'train' if self.phase == 'trainval' \
             else None
-
-        sample_ids_path = os.path.join(self.data_dir, 'image_sets', sample_set_name)
-        with open(sample_ids_path, 'r') as fp:
-            sample_ids = fp.readlines()
-        sample_ids = tuple(x.strip() for x in sample_ids)
-
-        return sample_ids, sample_ids_path
+        path = data_dict[sample_set_name]
+        # sample_ids_path = os.path.join(self.data_dir, 'image_sets', sample_set_name)
+        # with open(sample_ids_path, 'r') as fp:
+        #     sample_ids = fp.readlines()
+        # sample_ids = tuple(x.strip() for x in sample_ids)
+        image_paths = self.get_image_paths(path)
+        return image_paths
 
     def load_image(self, index):
-        image_id = self.sample_ids[index]
-        image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.png')
+        image_path = self.sample_ids[index]
+        image_id = image_path.split('/')[-1].split('.')[0]
+        site_name = image_path.split('/')[-4]
+        image_id = '_'.join([site_name, image_id])
         image = default_loader(image_path)
         if image.mode == 'L':
             image = image.convert('RGB')
         image = np.array(image).astype(np.float32)
         # image = skimage.io.imread(image_path).astype(np.float32)
-        return image, image_id
+        return image, image_id, image_path
 
     def load_annotations(self, index):
-        ann_id = self.sample_ids[index]
-        ann_path = os.path.join(self.data_dir, 'training/label_2', ann_id + '.txt')
+        ann_path = self.sample_ids[index].split('.')[0] + '.txt'
         with open(ann_path, 'r') as fp:
             annotations = fp.readlines()
 
         annotations = [ann.strip().split(' ') for ann in annotations]
         class_ids, boxes = [], []
         for ann in annotations:
-            if ann[0] not in self.class_names:
+            # orig_class = self.all_class_names[int(ann[0])]
+            mapped_class = self.map_class_names[int(ann[0])]
+            if mapped_class not in self.class_names:
                 continue
-            class_ids.append(self.class_ids_dict[ann[0]])
-            box = [float(x) for x in ann[4:8]]
-            # if box[2] <= 0:
-            #     box[2] = 0.00001
-            # if box[3] <= 0:
-            #     box[3] = 0.00001
-            boxes.append(box)
+            class_id = self.class_names.index(mapped_class)
+            box = [float(x) for x in ann[1:5]]
+            if (box[2]*448 > self.cfg.object_size_thresh[1]) and (box[3]*256 > self.cfg.object_size_thresh[0]):
+                boxes.append(box)
+                class_ids.append(class_id)
 
         class_ids = np.array(class_ids, dtype=np.int16)
         boxes = np.array(boxes, dtype=np.float32)
@@ -107,55 +144,19 @@ class YOLO(BaseDataset):
         boxes = None
         return class_ids, boxes
 
-    # ========================================
-    #                evaluation
-    # ========================================
-
-    def save_results(self, results):
-        txt_dir = os.path.join(self.results_dir, 'data')
-        os.makedirs(txt_dir, exist_ok=True)
-
-        for res in results:
-            txt_path = os.path.join(txt_dir, res['image_meta']['image_id'] + '.txt')
-            if 'class_ids' not in res:
-                with open(txt_path, 'w') as fp:
-                    fp.write('')
-                continue
-
-            num_boxes = len(res['class_ids'])
-            with open(txt_path, 'w') as fp:
-                for i in range(num_boxes):
-                    class_name = self.class_names[res['class_ids'][i]].lower()
-                    score = res['scores'][i]
-                    bbox = res['boxes'][i, :]
-                    line = '{} -1 -1 0 {:.2f} {:.2f} {:.2f} {:.2f} 0 0 0 0 0 0 0 {:.3f}\n'.format(
-                            class_name, *bbox, score)
-                    fp.write(line)
-
-    def evaluate(self):
-        kitti_eval_tool_path = os.path.join(self.cfg.root_dir, 'src/utils/kitti-eval/cpp/evaluate_object')
-        cmd = '{} {} {} {} {}'.format(kitti_eval_tool_path,
-                                      os.path.join(self.data_dir, 'training'),
-                                      self.sample_set_path,
-                                      self.results_dir,
-                                      len(self.sample_ids))
-
-        status = subprocess.call(cmd, shell=True)
-
-        aps = {}
-        for class_name in self.class_names:
-            map_path = os.path.join(self.results_dir, 'stats_{}_ap.txt'.format(class_name.lower()))
-            if os.path.exists(map_path):
-                with open(map_path, 'r') as f:
-                    lines = f.readlines()
-                _aps = [float(line.split('=')[1].strip()) for line in lines]
+    def get_image_paths(self, path):
+        f = []  # image files
+        for p, no_samples in path.items():
+            p = os.path.join(self.data_root,p)
+            p = Path(p)  # os-agnostic
+            if p.is_file:
+                with open(p) as t:
+                    t = t.read().strip().splitlines()
+                    if no_samples != -1:
+                        t = random.sample(t, no_samples)
+                    parent = str(p.parent.parent) + os.sep
+                    f += [os.path.join(parent, x) for x in t]  # local to global path
             else:
-                _aps = [0., 0., 0.]
-
-            aps[class_name + '_easy'] = _aps[0]
-            aps[class_name + '_moderate'] = _aps[1]
-            aps[class_name + '_hard'] = _aps[2]
-
-        aps['mAP'] = sum(aps.values()) / len(aps)
-
-        return aps
+                raise Exception(f'{p} does not exist')
+        img_files = sorted(x.replace('/', os.sep) for x in f if x.split('.')[-1].lower() in IMG_FORMATS)
+        return img_files
