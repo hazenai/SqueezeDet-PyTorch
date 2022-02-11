@@ -231,16 +231,16 @@ class RPNLoss(nn.Module):
         anchor_masks = gt[..., :1]
         gt_boxes = gt[..., 1:5]  # xyxy format
         gt_deltas = gt[..., 5:9]
-        gt_class_logits = gt[..., 9:]
+        # gt_class_logits = gt[..., 9:]
 
         num_objects = torch.sum(anchor_masks, dim=[1, 2])
         num_objects = num_objects + 1
         overlaps = compute_overlaps(gt_boxes, pred_boxes) * anchor_masks
 
-        rpn_class_loss = torch.sum(
-            self.class_loss_weight * anchor_masks * gt_class_logits * (-pred_log_class_probs),
-            dim=[1, 2],
-        ) / num_objects
+        # rpn_class_loss = torch.sum(
+        #     self.class_loss_weight * anchor_masks * gt_class_logits * (-pred_log_class_probs),
+        #     dim=[1, 2],
+        # ) / num_objects
 
         positive_score_loss = torch.sum(
             self.positive_score_loss_weight * anchor_masks * (overlaps - pred_scores) ** 2,
@@ -258,10 +258,10 @@ class RPNLoss(nn.Module):
         ) / num_objects
 
         
-        score_loss = (positive_score_loss + negative_score_loss).mean()
-        bbox_loss = bbox_loss.mean()
-        rpn_class_loss = rpn_class_loss.mean()
-        return bbox_loss, score_loss, rpn_class_loss
+        loss = bbox_loss + positive_score_loss + negative_score_loss
+        # rpn_class_loss = rpn_class_loss.mean()
+        # rpn_loss = score_loss + bbox_loss
+        return loss
 
 
 class ROILoss(nn.Module): 
@@ -270,10 +270,11 @@ class ROILoss(nn.Module):
         self.cfg = cfg
 
     def forward(self, labels, cls_scores):
-        classification_loss = []
+        classification_loss = torch.empty((cls_scores.shape[0]), device = cls_scores.device)
         for i in range(cls_scores.shape[0]):
-            classification_loss.append(F.cross_entropy(cls_scores[i], labels[i], ignore_index=-1, reduction='mean'))
-        return sum(classification_loss)/len(classification_loss)
+            per_image_loss = F.cross_entropy(cls_scores[i], labels[i], ignore_index=-1, reduction='mean')
+            classification_loss[i] = per_image_loss
+        return classification_loss
 
 
 class SqueezeDetWithLoss(nn.Module):
@@ -308,12 +309,12 @@ class SqueezeDetWithLoss(nn.Module):
         if not self.detect:
             # resolver predictions
             pred_class_probs, pred_log_class_probs, pred_scores, pred_deltas, pred_boxes = self.lossresolver(pred)
-            bbox_loss, score_loss, rpn_class_loss = self.rpnloss(batch['gt'], pred_boxes, pred_deltas, pred_scores, pred_log_class_probs)
-            pred_scores_copy  = pred_scores.detach().clone()
-            pred_scores_copy = pred_scores_copy.squeeze(dim=2)
-            pred_class_ids = torch.argmax(pred_class_probs.detach().clone(), dim=2)
+            rpn_loss = self.rpnloss(batch['gt'], pred_boxes, pred_deltas, pred_scores, pred_log_class_probs)
+            pred_scores  = pred_scores.detach().squeeze(dim=2)
+            # pred_scores = pred_scores_copy
+            pred_class_ids = torch.argmax(pred_class_probs.detach(), dim=2)
             dets = {'class_ids': pred_class_ids,
-                'scores': pred_scores_copy,
+                'scores': pred_scores,
                 'boxes': pred_boxes}
             batch_size = dets['class_ids'].shape[0]
             for b in range(batch_size):
@@ -328,7 +329,7 @@ class SqueezeDetWithLoss(nn.Module):
             # filtered_scores = torch.stack(filtered_scores)
             # filtered_class_ids = torch.stack(filtered_class_ids)
             filtered_boxes = torch.stack(filtered_boxes)
-            proposals, labels = self.selectrrainingsamples(batch['gt'], filtered_boxes)
+            proposals, labels = self.selectrrainingsamples(batch['gt'].detach(), filtered_boxes)
             proposals = torch.stack(proposals)
             roi_boxes = self.roialign(batch['image'], proposals)
             cls_scores = self.classifier(roi_boxes)
@@ -337,13 +338,11 @@ class SqueezeDetWithLoss(nn.Module):
 
             roi_class_loss = self.roiloss(labels, cls_scores)
             # classification_loss= roi_class_loss + rpn_class_loss
-            classification_loss= roi_class_loss
-            loss = score_loss + bbox_loss + classification_loss
+            loss = rpn_loss + roi_class_loss
             loss_stat = {
                 'loss':loss,
-                'score_loss':score_loss,
-                'bbox_loss':bbox_loss,
-                'class_loss': classification_loss,
+                'rpn_loss':rpn_loss,
+                'class_loss': roi_class_loss,
             }
             return loss, loss_stat
 

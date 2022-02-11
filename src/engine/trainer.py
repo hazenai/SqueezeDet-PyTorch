@@ -13,7 +13,7 @@ class Trainer(object):
         self.lr_scheduler = lr_scheduler
         self.cfg = cfg
         self.set_device(cfg.gpus, cfg.chunk_sizes, cfg.device)
-        self.metrics = ['loss', 'class_loss', 'score_loss', 'bbox_loss']
+        self.metrics = ['loss', 'rpn_loss', 'class_loss']
 
     def run_epoch(self, phase, epoch, data_loader, cfg):
         start_time = time.time()
@@ -42,7 +42,7 @@ class Trainer(object):
             loss, loss_stats = self.model(batch)
             # make_dot(loss, params=dict(self.model.named_parameters())).render("attached.png")
 
-            # loss = loss.mean()
+            loss = loss.mean()
 
             if phase == 'train':
                 self.optimizer.zero_grad()
@@ -64,8 +64,8 @@ class Trainer(object):
 
             msg = 'epoch {0:<3s} {1:<5s} [{2}/{3}] '.format(str(epoch) + ':', phase, iter_id, num_iters)
             for m in metric_loggers:
-                # value = loss_stats[m].mean().item()
-                value = loss_stats[m]
+                value = loss_stats[m].mean().item()
+                # value = loss_stats[m]
                 metric_loggers[m].update(value, batch['image'].shape[0])
                 msg += '| {} {:.3f} '.format(m, value)
 
