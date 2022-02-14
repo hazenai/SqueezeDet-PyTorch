@@ -159,7 +159,7 @@ class Config(object):
     @staticmethod
     def update_dataset_info(cfg, dataset):
         # cfg.input_size = dataset.input_size
-        cfg.data_dir = dataset.data_dir
+        # cfg.data_dir = dataset.data_dir
         cfg.grid_size = dataset.grid_size
         cfg.rgb_mean = dataset.rgb_mean
         cfg.rgb_std = dataset.rgb_std

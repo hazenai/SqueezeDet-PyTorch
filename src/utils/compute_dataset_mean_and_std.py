@@ -12,7 +12,7 @@ class DatasetWrapper(torch.utils.data.Dataset):
         self.dataset = dataset
 
     def __getitem__(self, index):
-        image, _ = self.dataset.load_image(index)
+        image, _, _= self.dataset.load_image(index)
         return image
 
     def __len__(self):

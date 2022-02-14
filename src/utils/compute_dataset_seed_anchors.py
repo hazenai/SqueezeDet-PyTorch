@@ -14,14 +14,18 @@ class DatasetWrapper(torch.utils.data.Dataset):
         self.dataset = dataset
 
     def __getitem__(self, index):
-        image, image_id = self.dataset.load_image(index)
+        # image, image_id, image_path = self.dataset.load_image(index)
         gt_class_ids, gt_boxes = self.dataset.load_annotations(index)
+        h,w = 256, 448
+        if gt_boxes is not None:
+            # Denormalze
+            gt_boxes[:, 0] = gt_boxes[:, 0] * w
+            gt_boxes[:, 1] = gt_boxes[:, 1] * h
+            gt_boxes[:, 2] = gt_boxes[:, 2] * w
+            gt_boxes[:, 3] = gt_boxes[:, 3] * h
+            #xywh to xyxy
+            gt_boxes = xywh_to_xyxy(gt_boxes)
 
-        image_meta = {'index': index,
-                      'image_id': image_id,
-                      'orig_size': np.array(image.shape, dtype=np.int32)}
-        
-        image, _, image_meta, gt_boxes, _ = self.dataset.preprocess(image, image_meta, gt_boxes)
         if gt_boxes is None:
             gt_boxes = np.empty([0, 4]).astype(np.float32)
         return gt_boxes
@@ -59,6 +63,18 @@ def compute_dataset_anchors_seed(dataset, anchors_per_grid=9,
     return anchors_seed.astype(np.int32)
 
 
+def xywh_to_xyxy(boxes_xywh):
+    assert np.ndim(boxes_xywh) == 2
+    # assert np.all(boxes_xywh > 0)
+
+    return np.concatenate([
+        boxes_xywh[:, [0]] - 0.5 * (boxes_xywh[:, [2]]),
+        boxes_xywh[:, [1]] - 0.5 * (boxes_xywh[:, [3]]),
+        boxes_xywh[:, [0]] + 0.5 * (boxes_xywh[:, [2]]),
+        boxes_xywh[:, [1]] + 0.5 * (boxes_xywh[:, [3]])
+    ], axis=1)
+
+
 def main():
     cfg = Config().parse('eval --dataset yolo'.split(' '))
     dataset = load_dataset(cfg.dataset)('trainval', cfg)
@@ -70,3 +86,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
