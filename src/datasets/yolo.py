@@ -20,22 +20,22 @@ class YOLO(BaseDataset):
         self.cfg = cfg
         self.input_size = cfg.input_size  # (height, width), both dividable by 16
         self.resized_image_size = cfg.resized_image_size
-        self.data_root = '/home/hazen/workspace/datasets/yolo_format'
+        self.data_root = '/home/hazen/workspace/datasets/DONOT_DELETE_tp_datasets/yolo_format'
         data_dict = {
             'train':{
-                    # 'alhajjcam0_yolo/data/train.txt': -1,
-                    # 'alhajjcam1_yolo/data/train.txt': -1,
-                    # 'detrac_yolo/data/train.txt': -1
-                    # 'idd_yolo/data/train.txt': 5000,
-                    # 'bdd_yolo/data/train.txt': 5000,
-                    # 'riyad_yolo/data/train.txt': -1,
-                    # 'kitti_yolo/data/train.txt': -1,
-                    'nuimages_yolo/data/train.txt': -1,
-                    # 'karachi_yolo/data/train.txt': -1,
+                    'alhajjcam0_yolo/data/train.txt': -1,
+                    'alhajjcam1_yolo/data/train.txt': -1,
+                    'detrac_yolo/data/train.txt': -1,
+                    'idd_yolo/data/train.txt': 5000,
+                    'bdd_yolo/data/train.txt': 5000,
+                    'riyad_yolo/data/train.txt': -1,
+                    'kitti_yolo/data/train.txt': -1,
+                    'nuimages_yolo/data/train.txt': 5000,
+                    'karachi_yolo/data/train.txt': -1,
 
                     },
             'val':{
-                    'detrac_yolo/data/val.txt': 50
+                    'detrac_yolo/data/val.txt': -1
                 },
         }
 
@@ -53,10 +53,10 @@ class YOLO(BaseDataset):
         ]
         self.class_names = ['background', 'person', 'bike', 'car', 'bus', 'truck']
         # Kitti mean
-        self.rgb_mean = np.array([93.877, 98.801, 95.923], dtype=np.float32).reshape(1, 1, 3)
-        self.rgb_std = np.array([78.782, 80.130, 81.200], dtype=np.float32).reshape(1, 1, 3)
+        # self.rgb_mean = np.array([93.877, 98.801, 95.923], dtype=np.float32).reshape(1, 1, 3)
+        # self.rgb_std = np.array([78.782, 80.130, 81.200], dtype=np.float32).reshape(1, 1, 3)
 
-        # real_filtered mean and std
+        #real_filtered mean and std
         # self.rgb_mean = np.array([94.87347, 96.89165, 94.70493], dtype=np.float32).reshape(1, 1, 3)
         # self.rgb_std = np.array([53.869507, 53.936283, 55.2807], dtype=np.float32).reshape(1, 1, 3)
         
@@ -68,6 +68,11 @@ class YOLO(BaseDataset):
         # self.rgb_mean = np.array([95.6651, 93.45838, 78.97777], dtype=np.float32).reshape(1, 1, 3)
         # self.rgb_std = np.array([64.098885, 61.599213, 56.8366  ], dtype=np.float32).reshape(1, 1, 3)
 
+        ## real 9 sites mean and std
+        self.rgb_mean = np.array([93.70749, 96.07261, 94.5964 ], dtype=np.float32).reshape(1, 1, 3)
+        self.rgb_std = np.array([59.224674, 59.357994, 60.477383], dtype=np.float32).reshape(1, 1, 3)
+
+
         self.num_classes = len(self.class_names)
         self.class_ids_dict = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_names)}
 
@@ -75,9 +80,9 @@ class YOLO(BaseDataset):
         self.sample_ids= self.get_sample_ids(data_dict)
 
         self.grid_size = tuple(x //cfg.stride  for x in self.resized_image_size)  # anchors grid 
-        self.anchors_seed = np.array([[ 29, 17], [46, 32], [69, 52],
-                                        [109, 68], [84, 127], [155, 106], 
-                                        [255, 145], [183, 215], [371, 221]], dtype=np.float32) ## real_filtered anchors
+        # self.anchors_seed = np.array([[ 29, 17], [46, 32], [69, 52],
+        #                                 [109, 68], [84, 127], [155, 106], 
+        #                                 [255, 145], [183, 215], [371, 221]], dtype=np.float32) ## real_filtered anchors
         
         # self.anchors_seed = np.array( [[ 32, 20], [ 61, 42], [ 59, 97],
         #                                 [103, 66], [122, 114], [183, 96],
@@ -86,6 +91,11 @@ class YOLO(BaseDataset):
         # self.anchors_seed = np.array( [[ 20, 16], [ 52, 24], [ 33, 58],
         #                                 [92, 44], [76, 110], [146, 76],
         #                                 [231, 109], [163, 187], [377, 170]], dtype=np.float32) ## real+synthv2+synthv2_SB>h8_w8
+
+
+        self.anchors_seed = np.array( [[ 10, 11], [ 24, 22], [ 25, 57],
+                                        [52, 35], [87, 62], [58, 114],
+                                        [142, 104], [141, 202], [312, 184]], dtype=np.float32) ## real 9 sites 5 class > h4_w4
 
         self.anchors = generate_anchors(self.grid_size, self.resized_image_size, self.anchors_seed)
         self.anchors_per_grid = self.anchors_seed.shape[0]

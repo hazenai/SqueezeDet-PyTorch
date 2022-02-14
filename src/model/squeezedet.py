@@ -341,13 +341,8 @@ class RPNLoss(nn.Module):
             dim=[1, 2],
         ) / num_objects
 
-        
-        score_loss = (positive_score_loss + negative_score_loss).mean()
-        bbox_loss = bbox_loss.mean()
-        # rpn_class_loss = rpn_class_loss.mean()
-        # return bbox_loss, score_loss, rpn_class_loss
-        del positive_score_loss, negative_score_loss
-        return bbox_loss, score_loss
+        loss = bbox_loss + positive_score_loss + negative_score_loss
+        return loss
 
 
 class ROILoss(nn.Module): 
@@ -356,10 +351,11 @@ class ROILoss(nn.Module):
         self.cfg = cfg
 
     def forward(self, labels, cls_scores):
-        classification_loss = []
+        classification_loss = torch.empty((cls_scores.shape[0]), device = cls_scores.device)
         for i in range(cls_scores.shape[0]):
-            classification_loss.append(F.cross_entropy(cls_scores[i], labels[i], ignore_index=-1, reduction='mean'))
-        return sum(classification_loss)/len(classification_loss)
+            per_image_loss = F.cross_entropy(cls_scores[i], labels[i], ignore_index=-1, reduction='mean')
+            classification_loss[i] = per_image_loss
+        return classification_loss
 
 
 class SqueezeDetWithLoss(nn.Module):
@@ -390,14 +386,10 @@ class SqueezeDetWithLoss(nn.Module):
             filtered_boxes = []
             # resolver predictions
             pred_scores, pred_deltas, pred_boxes = self.resolver(pred)
-            # bbox_loss, score_loss, rpn_class_loss = self.rpnloss(batch['gt'], pred_boxes, pred_deltas, pred_scores)
-            bbox_loss, score_loss = self.rpnloss(batch['gt'], pred_boxes, pred_deltas, pred_scores)
-            pred_scores_copy  = pred_scores.detach().clone()
-            pred_scores_copy = pred_scores_copy.squeeze(dim=2)
-            # pred_class_ids = torch.argmax(pred_class_probs.detach().clone(), dim=2)
+            rpn_loss = self.rpnloss(batch['gt'], pred_boxes, pred_deltas, pred_scores)
+            pred_scores  = pred_scores.detach().squeeze(dim=2)
             dets = {
-                # 'class_ids': pred_class_ids,
-                'scores': pred_scores_copy,
+                'scores': pred_scores,
                 'boxes': pred_boxes}
             batch_size = dets['scores'].shape[0]
             for b in range(batch_size):
@@ -413,32 +405,21 @@ class SqueezeDetWithLoss(nn.Module):
             cls_scores = torch.log_softmax(cls_scores, dim=-1)
 
             roi_class_loss = self.roiloss(labels, cls_scores)
-            # classification_loss = roi_class_loss + rpn_class_loss
-            # classification_loss= roi_class_loss
-            loss = score_loss + bbox_loss + roi_class_loss
+            loss = rpn_loss + roi_class_loss
             loss_stat = {
                 'loss':loss,
-                'score_loss':score_loss,
-                'bbox_loss':bbox_loss,
+                'rpn_loss':rpn_loss,
                 'class_loss': roi_class_loss,
             }
-            del filtered_boxes, proposals, labels, roi_boxes, cls_scores, score_loss, bbox_loss, roi_class_loss
-            gc.collect()
             return loss, loss_stat
 
         else:
             filtered_scores = []
             filtered_boxes = []
-            # pred_class_probs, pred_log_class_probs, pred_scores, pred_deltas, pred_boxes = self.resolver(pred)
-            # pred_scores_copy  = pred_scores.detach().clone()
-            # pred_scores_copy = pred_scores_copy.squeeze(dim=2)
-            # pred_class_ids = torch.argmax(pred_class_probs.detach().clone(), dim=2)
             pred_scores, pred_deltas, pred_boxes = self.resolver(pred)
-            pred_scores_copy  = pred_scores.detach().clone()
-            pred_scores_copy = pred_scores_copy.squeeze(dim=2)
+            pred_scores  = pred_scores.detach().squeeze(dim=2)
             dets = {
-                # 'class_ids': pred_class_ids,
-                'scores': pred_scores_copy,
+                'scores': pred_scores,
                 'boxes': pred_boxes}
             batch_size = dets['scores'].shape[0]
             for b in range(batch_size):
@@ -447,21 +428,17 @@ class SqueezeDetWithLoss(nn.Module):
                 filtered_scores.append(det['scores'])
                 filtered_boxes.append(det['boxes'])
             filtered_scores = torch.stack(filtered_scores)
-            # filtered_class_ids = torch.stack(filtered_class_ids)
             filtered_boxes = torch.stack(filtered_boxes)
             roi_boxes = self.roialign(batch['image'], filtered_boxes.clone())
             cls_scores = self.classifier(roi_boxes)
             cls_scores = cls_scores.view(batch_size, -1, self.cfg.num_classes)
             cls_scores = safe_softmax(cls_scores, dim=-1)
             
-            # pred_class_probs *= pred_scores
             pred_roi_class_scores , pred_roi_class_ids = torch.max(cls_scores, dim=2)
-            # pred_scores = torch.max(pred_class_probs, dim=2)[0]
             det = { 'class_ids': pred_roi_class_ids.detach(),
                     'class_scores': pred_roi_class_scores.detach(),
                     'scores': filtered_scores,
                     'boxes': filtered_boxes}
-            del filtered_scores, filtered_boxes, roi_boxes, cls_scores, pred_roi_class_ids, pred_roi_class_scores
             return det
 
     def fuse_model(self):
@@ -485,33 +462,11 @@ class SqueezeDetWithLoss(nn.Module):
 
             ## Pre NMS TopK
             orders = torch.argsort(det['scores'], descending=True)[:self.cfg.keep_top_k]
-            # class_ids = det['class_ids'][orders]
             scores = det['scores'][orders]
             boxes = det['boxes'][orders, :]
             rm_small_keep = box_ops.remove_small_boxes(boxes, self.cfg.object_size_thresh[0])
-            # class_ids = class_ids[keep]
             scores_filt1 = scores[rm_small_keep]
             boxes_filt1 = boxes[rm_small_keep]
-            # class-wise nms
-            # filtered_class_ids, filtered_scores, filtered_boxes = [], [], []
-            # for cls_id in range(self.cfg.num_classes):
-            #     idx_cur_class = (class_ids == cls_id)
-            #     if torch.sum(idx_cur_class) == 0:
-            #         continue
-
-            #     class_ids_cur_class = class_ids[idx_cur_class]
-            #     scores_cur_class = scores[idx_cur_class]
-            #     boxes_cur_class = boxes[idx_cur_class, :]
-
-            #     keeps = nms(boxes_cur_class, scores_cur_class, nms_thresh)
-
-            #     filtered_class_ids.append(class_ids_cur_class[keeps])
-            #     filtered_scores.append(scores_cur_class[keeps])
-            #     filtered_boxes.append(boxes_cur_class[keeps, :])
-
-            # filtered_class_ids = torch.cat(filtered_class_ids)
-            # filtered_scores = torch.cat(filtered_scores)
-            # filtered_boxes = torch.cat(filtered_boxes, dim=0)
             keeps = nms(boxes_filt1, scores_filt1, nms_thresh)
             diff = post_nms_top_k - keeps.shape[0]
             if diff >0:
@@ -519,17 +474,6 @@ class SqueezeDetWithLoss(nn.Module):
                 keeps = torch.cat((keeps, keeps[indices]), dim=0)
             scores_filt2 = scores_filt1[keeps]
             boxes_filt2 = boxes_filt1[keeps,:]
-            # ## Score Thresholding ##
-            # keeps = (filtered_scores > self.cfg.score_thresh) #& ((filtered_boxes[..., 3] - filtered_boxes[..., 1])>=8.0) & ((filtered_boxes[..., 2] - filtered_boxes[..., 0])>=8.0)
-            # filtered_class_ids = filtered_class_ids[keeps]
-            # filtered_scores = filtered_scores[keeps]
-            # filtered_boxes = filtered_boxes[keeps, :]
-
-            ## Post NMS TopK
-            # det = {'class_ids': filtered_class_ids[:post_nms_top_k],
-            #     'scores': filtered_scores[:post_nms_top_k],
-            #     'boxes': filtered_boxes[:post_nms_top_k, :]}
-
             det = {
                 'scores': scores_filt2[:post_nms_top_k],
                 'boxes': boxes_filt2[:post_nms_top_k, :]}

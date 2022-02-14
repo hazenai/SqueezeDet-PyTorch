@@ -42,8 +42,7 @@ def train(cfg):
                                 eps=1e-08,
                                 weight_decay=cfg.weight_decay)
 
-    # lr_scheduler = StepLR(optimizer, cfg.num_epochs//5, gamma=0.5)
-    lr_scheduler = StepLR(optimizer, 10, gamma=0.5)
+    lr_scheduler = StepLR(optimizer, cfg.num_epochs//5, gamma=0.5)
     trainer = Trainer(model, optimizer, lr_scheduler, cfg)
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
