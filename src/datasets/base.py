@@ -3,7 +3,7 @@ import os
 import numpy as np
 import torch.utils.data
 
-from utils.image import whiten, drift, flip, resize, crop_or_pad
+from utils.image import whiten, drift, flip, resize, crop_or_pad, paddedresize
 from utils.boxes import compute_deltas, visualize_boxes
 import imgaug as ia
 import imgaug.augmenters as iaa
@@ -167,6 +167,12 @@ class BaseDataset(torch.utils.data.Dataset):
                 image_visualize = image_visualize * image_meta['rgb_std'] + image_meta['rgb_mean']
 
             save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
+            if gt_boxes is not None:
+                gt_boxes[:,[0]] = (gt_boxes[:, [0]]*self.cfg.input_size[1])/self.cfg.resized_image_size[1]
+                gt_boxes[:,[1]] = (gt_boxes[:, [1]]*self.cfg.input_size[0])/self.cfg.resized_image_size[0]
+                gt_boxes[:,[2]] = (gt_boxes[:, [2]]*self.cfg.input_size[1])/self.cfg.resized_image_size[1]
+                gt_boxes[:,[3]] = (gt_boxes[:, [3]]*self.cfg.input_size[0])/self.cfg.resized_image_size[0]
+
             visualize_boxes(image_visualize, gt_class_ids, gt_boxes,
                             class_names=self.class_names,
                             save_path=save_path)
@@ -212,14 +218,17 @@ class BaseDataset(torch.utils.data.Dataset):
             # Trajectory Specific
             # drift_prob = self.cfg.drift_prob if self.phase == 'train' else 0.
             # flip_prob = self.cfg.flip_prob if self.phase == 'train' else 0.
-            image, image_meta = whiten(image, image_meta, mean=self.rgb_mean, std=self.rgb_std)
             # image, image_meta, boxes = drift(image, image_meta, prob=drift_prob, boxes=boxes)
             # image, image_meta, boxes = flip(image, image_meta, prob=flip_prob, boxes=boxes)
             if self.cfg.forbid_resize:
                 image, image_meta, boxes = crop_or_pad(image, image_meta, self.input_size, boxes=boxes)
             else:
-                image, image_meta, boxes = resize(image, image_meta, self.input_size, boxes=boxes) 
+                if self.phase != "train":
+                    image, image_meta, boxes = resize(image, image_meta, self.input_size, boxes=boxes, train=False) 
+                else:
+                    image, image_meta, boxes = paddedresize(image, image_meta, self.input_size, boxes=boxes)
 
+            image, image_meta = whiten(image, image_meta, mean=self.rgb_mean, std=self.rgb_std)
             image_visualize = image
             image = image.transpose(2, 0, 1)
 

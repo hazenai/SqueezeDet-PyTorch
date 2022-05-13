@@ -142,6 +142,11 @@ def boxes_postprocess(boxes, image_meta):
     :param image_meta:
     :return:
     """
+    
+    if 'cv2pad' in image_meta:
+        boxes[:, [0, 2]] -= image_meta['cv2pad'][1]
+        boxes[:, [1, 3]] -= image_meta['cv2pad'][0]
+
     if 'scales' in image_meta:
         boxes[:, [0, 2]] /= image_meta['scales'][1]
         boxes[:, [1, 3]] /= image_meta['scales'][0]

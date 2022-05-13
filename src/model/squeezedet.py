@@ -372,7 +372,8 @@ class SqueezeDetWithLoss(nn.Module):
         self.detect = False
         self.arch = cfg.arch
         self.cfg = cfg
-
+        self.torch_interpolation_modes = ['nearest', 'bilinear', 'bicubic' , 'area']
+    
     def forward(self, batch):
         resized_images = F.interpolate(
                     batch['image'],

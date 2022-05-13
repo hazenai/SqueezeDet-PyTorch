@@ -17,7 +17,7 @@ from PIL import Image
 
 def demo(cfg):
     # prepare configurations
-    cfg.load_model = '../exp/exp1_real+synthv2+synthv2_SB_class_agnostic_mobv2_cont/model_best.pth'
+    cfg.load_model = '../exp/yolt_with_resnet_base_and_mobv2_cls_9sites_cont5/model_best.pth'
     cfg.gpus = [0]  # -1 to use CPU
     cfg.debug = 2  # to visualize detection boxes
     dataset = YOLO('val', cfg)
@@ -34,7 +34,7 @@ def demo(cfg):
     detector = Detector(model.to(cfg.device), cfg)
 
     # prepare images
-    sample_images_dir = '/home/hazen/workspace/datasets/trajectory_test_sites/Delta-United/frames'
+    sample_images_dir = '/data/datasets/trajectory_training_data/yolo_format/delta_united_yolo/data/obj_train_data'
     sample_image_paths = glob.glob(os.path.join(sample_images_dir, '*.png'))
 
     # detection
@@ -45,7 +45,8 @@ def demo(cfg):
             image = image.convert('RGB')
         image = np.array(image).astype(np.float32)
 
-        image_meta = {'image_id': os.path.basename(path)[:-4],
+        image_meta = {'image_path': path,
+                      'image_id': os.path.basename(path)[:-4],
                       'orig_size': np.array(image.shape, dtype=np.int32)}
 
         image, _ , image_meta, _, _= preprocess_func(image, image_meta)

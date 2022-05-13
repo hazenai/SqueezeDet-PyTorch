@@ -4,7 +4,8 @@ Images implements based on Numpy
 
 import numpy as np
 import cv2
-
+import random
+from PIL import Image
 
 def whiten(image, image_meta, mean=0., std=1.):
     """
@@ -74,16 +75,81 @@ def flip(image, image_meta, prob=0., boxes=None):
     return image, image_meta, boxes
 
 
-def resize(image, image_meta, target_size, boxes=None):
+def resize(image, image_meta, target_size, boxes=None, train=True):
     height, width = image.shape[:2]
     scales = np.array([target_size[0] / height, target_size[1] / width], dtype=np.float32)
-    image = cv2.resize(image, (target_size[1], target_size[0]))
+    if train:
+        resize_alogorithm = random.choice(['opencv', 'pil'])
+    else:
+        resize_alogorithm = 'opencv'
 
+    if resize_alogorithm=='opencv':
+        if train:
+            cv2_interpolation_modes = [cv2.INTER_AREA, cv2.INTER_CUBIC, cv2.INTER_LINEAR]
+            interpolation = random.choice(cv2_interpolation_modes)
+        else:
+            interpolation = cv2.INTER_LINEAR
+        image = cv2.resize(image, (target_size[1], target_size[0]), interpolation = interpolation)
+
+    elif resize_alogorithm=='pil':
+        image = Image.fromarray(cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        # The requested size in pixels, as a 2-tuple: (width, height).
+        pil_resampling_modes = [Image.NEAREST, Image.BOX, Image.BILINEAR,
+                                Image.HAMMING, Image.BICUBIC, Image.LANCZOS
+                                ]
+        image = image.resize((target_size[1], target_size[0]), resample = random.choice(pil_resampling_modes))
+        image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    
     if boxes is not None:
         boxes[:, [0, 2]] *= scales[1]
         boxes[:, [1, 3]] *= scales[0]
-
     image_meta.update({'scales': scales})
+
+    return image, image_meta, boxes
+
+
+def paddedresize(image, image_meta, target_size, boxes=None, train=True): 
+    ih, iw = image.shape[:2]
+    h, w = target_size
+    sc = min(w/iw, h/ih)
+    nw = int(iw*sc)
+    nh = int(ih*sc)
+    scales = (nh/ih, nw/iw) 
+    delta_w, delta_h = (w-nw), (h-nh)
+    top, bottom = delta_h//2, delta_h-(delta_h//2)
+    left, right = delta_w//2, delta_w-(delta_w//2)
+    color = [0, 0, 0]
+
+    if train:
+        resize_alogorithm = random.choice(['opencv', 'pil'])
+    else:
+        resize_alogorithm = 'opencv'
+
+    if resize_alogorithm == 'opencv':
+        if train:
+            cv2_interpolation_modes = [cv2.INTER_AREA, cv2.INTER_CUBIC, cv2.INTER_LINEAR]
+            interpolation = random.choice(cv2_interpolation_modes)
+        else:
+            interpolation = cv2.INTER_LINEAR
+        image = cv2.resize(image, (nw, nh), interpolation = interpolation)
+
+    elif resize_alogorithm=='pil':
+        image = Image.fromarray(cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        # The requested size in pixels, as a 2-tuple: (width, height).
+        pil_resampling_modes = [Image.NEAREST, Image.BOX, Image.BILINEAR,
+                                Image.HAMMING, Image.BICUBIC, Image.LANCZOS
+                                ]
+        image = image.resize((nw, nh), resample = random.choice(pil_resampling_modes))
+        image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    
+    image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT,
+    value=color)
+
+    if boxes is not None:
+        boxes[:, [0, 2]] = boxes[:, [0, 2]] * scales[1] + delta_w//2
+        boxes[:, [1, 3]] = boxes[:, [1, 3]] * scales[0] + delta_h//2
+
+    image_meta.update({'scales': scales, 'cv2pad': (delta_h//2, delta_w//2)})
 
     return image, image_meta, boxes
 

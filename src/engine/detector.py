@@ -51,6 +51,10 @@ class Detector(object):
                 image_path = image_meta['image_path']
                 image_visualize = load_image(image_path)
                 save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
+                height, width = image_visualize.shape[:2]
+                boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0., width - 1.)
+                boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0., height - 1.)
+                
                 visualize_boxes(image_visualize, det['class_ids'], det['boxes'], det['scores'],
                                 class_names=self.cfg.class_names,
                                 save_path=save_path,
