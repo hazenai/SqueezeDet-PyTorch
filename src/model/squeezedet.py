@@ -375,11 +375,20 @@ class SqueezeDetWithLoss(nn.Module):
         self.torch_interpolation_modes = ['nearest', 'bilinear', 'bicubic' , 'area']
     
     def forward(self, batch):
+        if not self.detect:
+            mode = random.choice(self.torch_interpolation_modes)
+            if mode in ['bilinear', 'bicubic']:
+                align_corners = random.choice([True, False])
+            else:
+                align_corners = None
+        else:
+            mode = 'nearest'
+            align_corners = None
         resized_images = F.interpolate(
                     batch['image'],
                     size=self.cfg.resized_image_size,
-                    mode='bilinear',
-                    align_corners=False)
+                    mode=mode,
+                    align_corners=align_corners)
 
         pred = self.base(resized_images)
 

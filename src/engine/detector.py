@@ -90,6 +90,8 @@ class Detector(object):
         iouv = torch.linspace(0.5, 0.95, 10).to(self.cfg.device)  # iou vector for mAP@0.5:0.95
         niou = iouv.numel()
         s = ('%20s' + '%11s' * 6) % ('Class', 'Images', 'Labels', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
+        with open(cfg.log_file, 'a+') as file:
+            file.write(s + '\n')
         pbar = tqdm(data_loader, desc=s, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
         for iter_id, batch in enumerate(pbar):
             for k in batch:
@@ -139,14 +141,20 @@ class Detector(object):
             mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
             nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
             pf = '%20s' + '%11i' * 2 + '%11.3g' * 4  # print format
-            LOGGER.info(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
+            info = pf % ('all', seen, nt.sum(), mp, mr, map50, map)
+            with open(cfg.log_file, 'a+') as file:
+                file.write(info + '\n')
+            LOGGER.info(info)
 
         else:
             nt = torch.zeros(1)
         # Print results per class
         if (verbose or (nc < 50)) and nc > 1 and len(stats):
             for i, c in enumerate(ap_class):
-                LOGGER.info(pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]))
+                info = pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i])
+                with open(cfg.log_file, 'a+') as file:
+                    file.write(info + '\n')
+                LOGGER.info(info)
 
         total_time = time.time() - start_time
         tpi = total_time / len(dataset)

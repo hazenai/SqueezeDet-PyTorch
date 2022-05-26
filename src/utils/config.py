@@ -17,7 +17,7 @@ class Config(object):
                                  help='Riszed image size (detector input) in height, width format')
         self.parser.add_argument('--crop_size', type = tuple, default=(128,128),
                                  help='Crop size (classifier input) in height, width format')
-        self.parser.add_argument('--object_size_thresh', type = tuple, default=(4,4),
+        self.parser.add_argument('--object_size_thresh', type = tuple, default=(10,10),
                                  help='Object Size Thresholds in (h,w) format.\n'
                                       'Objects resized at 256*448 which are smaller than threshold on one are both dimensions will be discarded')
         self.parser.add_argument('--load_model', default='',
