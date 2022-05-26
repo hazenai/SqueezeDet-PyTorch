@@ -9,7 +9,7 @@ mkl-fft
 mkl-random
 mkl-service
 networkx==2.4
-numpy==1.18.1
+numpy
 olefile==0.46
 opencv-python==4.2.0.34
 Pillow==6.2.2

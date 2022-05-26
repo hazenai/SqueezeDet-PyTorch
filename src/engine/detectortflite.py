@@ -31,6 +31,9 @@ class DetectorTflite(object):
         pred_class_probs = torch.from_numpy(self.model.get_tensor(out_details[2]['index']))
         
         pred_boxes = xywh_to_xyxy(pred_boxes)
+        pred_boxes[..., [0, 2]] = torch.clamp(pred_boxes[..., [0, 2]], 0, self.cfg.input_size[1] - 1)
+        pred_boxes[..., [1, 3]] = torch.clamp(pred_boxes[..., [1, 3]], 0, self.cfg.input_size[0] - 1)
+
         pred_class_probs *= pred_scores
         pred_class_ids = torch.argmax(pred_class_probs, dim=2)
         pred_scores = torch.max(pred_class_probs, dim=2)[0]
