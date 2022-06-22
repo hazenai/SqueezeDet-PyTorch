@@ -114,9 +114,9 @@ class Config(object):
 
     def parse(self, args=''):
         if args == '':
-            cfg = self.parser.parse_args()
+            cfg, unknown = self.parser.parse_known_args()
         else:
-            cfg = self.parser.parse_args(args)
+            cfg, unknown = self.parser.parse_known_args(args)
 
         cfg.gpus_str = cfg.gpus
         cfg.gpus = [int(gpu) for gpu in cfg.gpus.split(',')]
@@ -154,7 +154,7 @@ class Config(object):
         # print('The results will be saved to ', cfg.save_dir)
         with open(cfg.log_file, 'a+') as file:
             file.write('The results will be saved to ' + cfg.save_dir + '\n')
-        return cfg
+        return cfg, unknown
 
     @staticmethod
     def update_dataset_info(cfg, dataset):
