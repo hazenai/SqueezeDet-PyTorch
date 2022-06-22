@@ -4,7 +4,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-cfg = Config().parse()
+cfg, _ = Config().parse()
 init_env(cfg)
 
 if cfg.mode == 'train':

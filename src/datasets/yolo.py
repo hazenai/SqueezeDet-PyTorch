@@ -20,7 +20,7 @@ class YOLO(BaseDataset):
         self.cfg = cfg
         self.input_size = cfg.input_size  # (height, width), both dividable by 16
         self.resized_image_size = cfg.resized_image_size
-        self.data_root = '/data/datasets/trajectory_training_data/yolo_format'
+        self.data_root = '/data/datasets/trajectory_training_data/yolo_format/final'
         data_dict = {
             'train':{
                     'aiactive_yolo/data/train.txt': -1,
