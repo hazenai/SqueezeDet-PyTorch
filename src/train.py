@@ -12,6 +12,7 @@ from utils.model import load_model, load_official_model, save_model
 from utils.logger import Logger
 from utils.misc import load_dataset
 from eval import eval_dataset
+from modelsummary import summary
 
 
 def train(cfg):
@@ -23,6 +24,7 @@ def train(cfg):
     logger = Logger(cfg)
 
     model = SqueezeDetWithLoss(cfg)
+    # summary(model, torch.zeros(1,3,1080,1920), show_input=False)
     if cfg.load_model != '':
         if cfg.load_model.endswith('f364aa15.pth') or cfg.load_model.endswith('a815701f.pth') or cfg.load_model.endswith('b0353104.pth'):
             model = load_official_model(model, cfg.load_model, cfg)

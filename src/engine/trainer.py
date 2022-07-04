@@ -1,6 +1,7 @@
 import time
 import torch
 import torch.nn as nn
+from torchviz import make_dot
 
 from utils.data_parallel import DataParallel
 from utils.misc import MetricLogger
@@ -26,6 +27,7 @@ class Trainer(object):
         metric_loggers = {m: MetricLogger() for m in self.metrics}
         data_timer, net_timer = MetricLogger(), MetricLogger()
         num_iters = len(data_loader) if self.cfg.num_iters < 0 else self.cfg.num_iters
+        print (num_iters)
         end = time.time()
         for iter_id, batch in enumerate(data_loader):
             if iter_id >= num_iters:

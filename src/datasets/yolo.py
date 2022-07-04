@@ -20,27 +20,28 @@ class YOLO(BaseDataset):
         self.cfg = cfg
         self.input_size = cfg.input_size  # (height, width), both dividable by 16
         self.resized_image_size = cfg.resized_image_size
-        self.data_root = '/data/datasets/trajectory_training_data/yolo_format/final'
+        # self.data_root = '/data/datasets/trajectory_training_data/yolo_format/final'
+        self.data_root = '/home/gj/hazen/Traj_Training/SqueezeDet-PyTorch/data'
         data_dict = {
             'train':{
-                    'aiactive_yolo/data/train.txt': -1,
-                    'aic20t1/data/train.txt': -1,
-                    'alhajjcam0_yolo/data/train.txt': -1,
-                    'alhajjcam1_yolo/data/train.txt': -1,
-                    'detrac_train_yolo/data/train.txt': -1,
-                    'idd_yolo/data/train.txt': -1,
-                    'bdd_yolo_day/data/train.txt': -1,
-                    'riyad_yolo/data/train.txt': -1,
-                    'kitti_yolo/data/train.txt': -1,
-                    'nuimages_yolo/data/train.txt': 20000,
-                    'karachi_yolo/data/train.txt': -1,
-                    'chicago_yolo_day/data/train.txt': -1,
-                    'etcc_yolo_day/data/train.txt': -1,
-                    'coco_yolo/data/train_2.txt': -1,
-                    'voc_yolo/data/train.txt': -1,
+                    # 'aiactive_yolo/data/train.txt': -1,
+                    # 'aic20t1/data/train.txt': -1,
+                    # 'alhajjcam0_yolo/data/train.txt': -1,
+                    # 'alhajjcam1_yolo/data/train.txt': -1,
+                    # 'detrac_train_yolo/data/train.txt': -1,
+                    # 'idd_yolo/data/train.txt': -1,
+                    # 'bdd_yolo_day/data/train.txt': -1,
+                    # 'riyad_yolo/data/train.txt': -1,
+                    'kitti_yolo/data/train_mini_10.txt': -1,
+                    # 'nuimages_yolo/data/train.txt': 20000,
+                    # 'karachi_yolo/data/train.txt': -1,
+                    # 'chicago_yolo_day/data/train.txt': -1,
+                    # 'etcc_yolo_day/data/train.txt': -1,
+                    # 'coco_yolo/data/train_2.txt': -1,
+                    # 'voc_yolo/data/train.txt': -1,
                     },
             'val':{
-                    'delta_united_yolo/data/val.txt': -1
+                    'kitti_yolo/data/val_mini_10.txt': -1
                 },
         }
 
