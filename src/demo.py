@@ -34,7 +34,8 @@ def demo(cfg):
     detector = Detector(model.to(cfg.device), cfg)
 
     # prepare images
-    sample_images_dir = '/data/datasets/trajectory_training_data/yolo_format/delta_united_yolo/data/obj_train_data'
+    # sample_images_dir = '/data/datasets/trajectory_training_data/yolo_format/delta_united_yolo/data/obj_train_data'
+    sample_images_dir = '/home/gj/hazen/Traj_Training/SqueezeDet-PyTorch/data/kitti_yolo/data/obj_train_data'
     sample_image_paths = glob.glob(os.path.join(sample_images_dir, '*.png'))
 
     # detection
