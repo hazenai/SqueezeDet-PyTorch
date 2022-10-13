@@ -7,6 +7,7 @@ import skimage.io
 from datasets.base import BaseDataset
 from utils.boxes import generate_anchors
 from PIL import Image
+import torch
 from torchvision.datasets.folder import default_loader
 
 
@@ -14,7 +15,8 @@ class LPR(BaseDataset):
     def __init__(self, phase, cfg):
         super(LPR, self).__init__(phase, cfg)
 
-        self.input_size = (128, 128)  # (height, width), both dividable by 16
+        # self.input_size = (128, 128)  # (height, width), both dividable by 16
+        self.input_size = (256, 256)  # (height, width), both dividable by 16
         self.class_names = ('0')
         # real_filtered mean and std
         # self.rgb_mean = np.array([94.87347, 96.89165, 94.70493], dtype=np.float32).reshape(1, 1, 3)
@@ -44,6 +46,7 @@ class LPR(BaseDataset):
         # self.anchors_seed = np.array([[6, 5], [12, 10], [18, 10], [18, 18], [20, 24], [30, 15]], dtype=np.float32)
         self.anchors_seed = np.array([[3, 3], [6, 5], [9, 5], [10, 9], [10, 12], [15, 8]], dtype=np.float32)
         self.anchors = generate_anchors(self.grid_size, self.input_size, self.anchors_seed)
+        self.anchors = torch.load("../exp/alpr_det_anchors_256_exp_8.pt")
         self.anchors_per_grid = self.anchors_seed.shape[0]
         self.num_anchors = self.anchors.shape[0]
 
@@ -131,6 +134,7 @@ class LPR(BaseDataset):
                                       self.results_dir,
                                       len(self.sample_ids))
 
+        print (cmd)
         status = subprocess.call(cmd, shell=True)
 
         aps = {}

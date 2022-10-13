@@ -123,11 +123,11 @@ class SqueezeDetBase(nn.Module):
                 Fire(256, 48, 192, 192, self.qat),
                 Fire(384, 48, 192, 192, self.qat),
                 Fire(384, 64, 256, 256, self.qat),
-                Fire(512, 64, 256, 256, self.qat),
-                Fire(512, 96, 384, 384, self.qat),
-                Fire(768, 96, 384, 384, self.qat)
+                Fire(512, 64, 256, 256, self.qat)
+                # Fire(512, 96, 384, 384, self.qat),
+                # Fire(768, 96, 384, 384, self.qat)
             )
-            out_channels = 768
+            out_channels = 512
         # elif cfg.arch == 'squeezedetplus':
         #     self.features = nn.Sequential(
         #         nn.Conv2d(3, 96, kernel_size=7, stride=2, padding=3),
@@ -158,7 +158,7 @@ class SqueezeDetBase(nn.Module):
                 [1, 16, 1, 1, self.qat],
                 [6, 24, 2, 2, self.qat],
                 [6, 32, 3, 2, self.qat],
-                [6, 64, 2, 1, self.qat],
+                [6, 64, 2, 1, self.qat], #for traj mobilenet, it's [6,64,4,1]
                 # [6, 96, 3, 1, self.qat],
                 # [6, 160, 3, 1, self.qat],
                 # [6, 320, 1, 1, self.qat],

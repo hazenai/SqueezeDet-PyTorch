@@ -12,6 +12,7 @@ def load_model(model, model_path, cfg):
     if cfg.load_pretrained:
         dt = {}
         for k, v in state_dict_.items():
+            # print (f'key: {k}')
             k = k.replace('base.features.0', 'base.conv1')
             k = k.replace('base.features.3', 'base.features.1')
             k = k.replace('base.features.4', 'base.features.2')
@@ -26,6 +27,8 @@ def load_model(model, model_path, cfg):
             dt[k] = v
 
         state_dict_ = dt
+        # print ('state_dict: \n', state_dict_.keys())
+        # exit()
 
     state_dict = {}
     for k in state_dict_:
