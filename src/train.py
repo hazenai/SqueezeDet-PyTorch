@@ -12,7 +12,7 @@ from utils.model import load_model, load_official_model, save_model
 from utils.logger import Logger
 from utils.misc import load_dataset
 from eval import eval_dataset
-from modelsummary import summary
+# from modelsummary import summary
 
 
 def train(cfg):

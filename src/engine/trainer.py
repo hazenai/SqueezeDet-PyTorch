@@ -1,7 +1,7 @@
 import time
 import torch
 import torch.nn as nn
-from torchviz import make_dot
+# from torchviz import make_dot
 
 from utils.data_parallel import DataParallel
 from utils.misc import MetricLogger

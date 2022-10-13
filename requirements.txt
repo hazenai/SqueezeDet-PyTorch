@@ -1,3 +1,4 @@
+#python = 3.8
 certifi==2019.11.28
 cffi==1.14.0
 cycler==0.10.0
@@ -31,7 +32,8 @@ imagecorruptions==1.1.2
 
 # Tinynn requirements
 ruamel.yaml>=0.16.12
-futures3>=1.0.0; python_version < '3.7'
+# futures3>=1.0.0; python_version < '3.7' # this python<3.7 is not needed
+futures3>=1.0.0
 python-igraph>=0.9.6
 tflite==2.3.0
 

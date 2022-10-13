@@ -21,7 +21,7 @@ class YOLO(BaseDataset):
         self.input_size = cfg.input_size  # (height, width), both dividable by 16
         self.resized_image_size = cfg.resized_image_size
         # self.data_root = '/data/datasets/trajectory_training_data/yolo_format/final'
-        self.data_root = '/home/gj/hazen/Traj_Training/SqueezeDet-PyTorch/data'
+        self.data_root = '/media/gj_data/Traj_Training/SqueezeDet-PyTorch/data'
         data_dict = {
             'train':{
                     # 'aiactive_yolo/data/train.txt': -1,
