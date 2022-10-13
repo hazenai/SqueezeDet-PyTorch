@@ -123,11 +123,11 @@ class SqueezeDetBase(nn.Module):
                 Fire(256, 48, 192, 192, self.qat),
                 Fire(384, 48, 192, 192, self.qat),
                 Fire(384, 64, 256, 256, self.qat),
-                Fire(512, 64, 256, 256, self.qat)
-                # Fire(512, 96, 384, 384, self.qat),
-                # Fire(768, 96, 384, 384, self.qat)
+                Fire(512, 64, 256, 256, self.qat),
+                Fire(512, 96, 384, 384, self.qat),
+                Fire(768, 96, 384, 384, self.qat)
             )
-            out_channels = 512
+            out_channels = 768
         # elif cfg.arch == 'squeezedetplus':
         #     self.features = nn.Sequential(
         #         nn.Conv2d(3, 96, kernel_size=7, stride=2, padding=3),

@@ -101,8 +101,8 @@ class Config(object):
         cfg.gpus = [i for i in range(len(cfg.gpus))] if cfg.gpus[0] >= 0 else [-1]
 
         cfg.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        cfg.data_dir = os.path.join(cfg.root_dir, 'data')
-        # cfg.data_dir = '/media/data_drive/datasets' #if dataset is not in ../data
+        # cfg.data_dir = os.path.join(cfg.root_dir, 'data')
+        cfg.data_dir = '/media/gj_data/datasets' #if dataset is not in ../data
         cfg.exp_dir = os.path.join(cfg.root_dir, 'exp')
         cfg.save_dir = os.path.join(cfg.exp_dir, cfg.exp_id)
         os.makedirs(cfg.save_dir, exist_ok=True)
