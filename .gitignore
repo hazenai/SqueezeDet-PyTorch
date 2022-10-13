@@ -8,7 +8,6 @@ __pycache__/
 
 exp/
 models/
-*.ipynb
 data/
 *.env
 *.pt
