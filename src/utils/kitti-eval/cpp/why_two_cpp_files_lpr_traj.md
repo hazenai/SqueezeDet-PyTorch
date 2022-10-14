@@ -1,0 +1,2 @@
+- if you are evaluating lp det, make a copy of evaluate_object_lpr.cpp and rename to evaluate_object.cpp and run make
+- if you are evaluating vehicle det, make a copy of evaluate_object_traj.cpp and rename to evaluate_object.cpp and run make 
