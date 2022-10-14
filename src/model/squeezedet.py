@@ -158,7 +158,7 @@ class SqueezeDetBase(nn.Module):
                 [1, 16, 1, 1, self.qat],
                 [6, 24, 2, 2, self.qat],
                 [6, 32, 3, 2, self.qat],
-                [6, 64, 2, 1, self.qat], #for traj mobilenet, it's [6,64,4,1]
+                [6, 64, 4, 1, self.qat], #for traj-det mobilenet, it's [6,64,4,1], for lp-det mobilenet use [6,64,2,1] 
                 # [6, 96, 3, 1, self.qat],
                 # [6, 160, 3, 1, self.qat],
                 # [6, 320, 1, 1, self.qat],
