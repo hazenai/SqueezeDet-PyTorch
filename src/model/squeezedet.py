@@ -105,8 +105,8 @@ class SqueezeDetBase(nn.Module):
         super(SqueezeDetBase, self).__init__()
         self.num_classes = cfg.num_classes
         self.num_anchors = cfg.num_anchors
-        self.quant = torch.quantization.QuantStub()
-        self.dequant = torch.quantization.DeQuantStub()
+        # self.quant = torch.quantization.QuantStub()
+        # self.dequant = torch.quantization.DeQuantStub()
         self.arch = cfg.arch
         self.qat = cfg.qat
         if self.arch == 'squeezedet':
@@ -190,27 +190,27 @@ class SqueezeDetBase(nn.Module):
 
         self.dropout = nn.Dropout(cfg.dropout_prob, inplace=True) \
             if cfg.dropout_prob > 0 else None
-        self.convdet = nn.Conv2d(out_channels,
-                                 cfg.anchors_per_grid * (cfg.num_classes + 5),
-                                 kernel_size=3, padding=1)
+        self.convdet = nn.Conv2d(out_channels, cfg.anchors_per_grid * (cfg.num_classes + 5), kernel_size=3, padding=1, stride=1)
 
         self.init_weights()
 
     def forward(self, x):
-        if self.qat:
-            x = self.quant(x)
+        #print(x.shape)
+        # if self.qat:
+        #     x = self.quant(x)
         if self.arch=='squeezedet':
             x = self.conv1(x)
             x = self.relu1(x)
         x = self.features(x)
-        if self.dropout is not None:
-            x = self.dropout(x)
-        x = self.convdet(x)
-        x = x.permute(0, 2, 3, 1).contiguous()
+        # if self.dropout is not None:
+        #     x = self.dropout(x)
+        xl = self.convdet(x)
+        
+        x = xl.permute(0, 2, 3, 1).contiguous()
         x = x.view(-1, self.num_anchors, self.num_classes + 5)
-        if self.qat:
-            x = self.dequant(x)
-        return x
+        # if self.qat:
+        #     x = self.dequant(x)
+        return x, xl
     def init_weights(self):
         if self.arch=='squeezedet':
             for m in self.modules():
@@ -345,7 +345,7 @@ class SqueezeDetWithLoss(nn.Module):
         self.arch = cfg.arch
 
     def forward(self, batch):
-        pred = self.base(batch['image'])
+        pred,xl = self.base(batch)
         if not self.detect:
             loss, loss_stats = self.loss(pred, batch['gt'])
             return loss, loss_stats
@@ -358,7 +358,7 @@ class SqueezeDetWithLoss(nn.Module):
             det = {'class_ids': pred_class_ids,
                 'scores': pred_scores,
                 'boxes': pred_boxes}
-            return det
+            return det,xl
 
     def fuse_model(self):
         if self.arch=='squeezedet':

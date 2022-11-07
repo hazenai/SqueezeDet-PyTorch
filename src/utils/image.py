@@ -87,6 +87,17 @@ def resize(image, image_meta, target_size, boxes=None):
 
     return image, image_meta, boxes
 
+# def resize(image, target_size, boxes=None):
+#     height, width = image.shape[:2]
+#     scales = np.array([target_size[0] / height, target_size[1] / width], dtype=np.float32)
+#     image = cv2.resize(image, (target_size[1], target_size[0]))
+
+#     if boxes is not None:
+#         boxes[:, [0, 2]] *= scales[1]
+#         boxes[:, [1, 3]] *= scales[0]
+
+#     return image, boxes
+
 
 def crop_or_pad(image, image_meta, target_size, boxes=None):
     """

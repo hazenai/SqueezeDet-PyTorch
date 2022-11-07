@@ -27,7 +27,7 @@ def load_model(model, model_path, cfg):
             dt[k] = v
 
         state_dict_ = dt
-        # print ('state_dict: \n', state_dict_.keys())
+        print ('state_dict: \n', state_dict_.keys())
         # exit()
 
     state_dict = {}

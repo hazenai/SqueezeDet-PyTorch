@@ -24,7 +24,6 @@ class Detector(object):
     
     def detect(self, batch):
         dets = self.model(batch)
-
         results = []
         batch_size = dets['class_ids'].shape[0]
         for b in range(batch_size):
@@ -65,14 +64,16 @@ class Detector(object):
         end = time.time()
 
         results = []
+        xls = []
         for iter_id, batch in enumerate(data_loader):
             for k in batch:
                 if 'image_meta' not in k:
                     batch[k] = batch[k].to(device=self.cfg.device, non_blocking=True)
             data_timer.update(time.time() - end)
             end = time.time()
-            results.extend(self.detect(batch))
-
+            r, xl = self.detect(batch)
+            results.extend(r)
+            xls.extend(xl)
             net_timer.update(time.time() - end)
             end = time.time()
             if iter_id % self.cfg.print_interval == 0:
@@ -92,7 +93,7 @@ class Detector(object):
             file.write(msg + '\n')
             file.write('-' * 80 + '\n')
 
-        return results
+        return results,xls
 
     def filter(self, det):
         orders = torch.argsort(det['scores'], descending=True)[:self.cfg.keep_top_k]

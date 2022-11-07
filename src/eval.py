@@ -7,7 +7,7 @@ from model.squeezedet import SqueezeDetWithLoss
 from utils.config import Config
 from utils.model import load_model
 from utils.misc import load_dataset
-
+xls = []
 
 def eval(cfg):
     dataset = load_dataset(cfg.dataset)('val', cfg)
@@ -17,6 +17,7 @@ def eval(cfg):
     aps = eval_dataset(dataset, cfg.load_model, cfg)
     for k, v in aps.items():
         print('{:<20} {:.3f}'.format(k, v))
+        print(xls)
 
     torch.cuda.empty_cache()
 
@@ -37,7 +38,8 @@ def eval_dataset(dataset, model, cfg):
     model.detect = True
     detector = Detector(model, cfg)
 
-    results = detector.detect_dataset(dataset, cfg)
+    results, xls = detector.detect_dataset(dataset, cfg)
+    #print(len(xls))
     dataset.save_results(results)
     aps = dataset.evaluate()
     model.detect = detect

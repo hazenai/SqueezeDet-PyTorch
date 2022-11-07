@@ -11,7 +11,9 @@ def init_env(cfg):
     torch.manual_seed(cfg.seed)
     torch.backends.cudnn.benchmark = not cfg.not_cuda_benchmark
     os.environ['CUDA_VISIBLE_DEVICES'] = cfg.gpus_str
-    cfg.device = torch.device('cuda' if cfg.gpus[0] >= 0 else 'cpu')
+    # cfg.device = torch.device('cuda' if cfg.gpus[0] >= 0 else 'cpu')
+    cfg.device = torch.device('cpu')
+   
 
     return cfg
 
