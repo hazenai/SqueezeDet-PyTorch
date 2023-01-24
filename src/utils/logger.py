@@ -3,8 +3,11 @@ import time
 import sys
 
 import numpy as np
-import torch
-import matplotlib.pyplot as plt
+import torch 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt 
+import gc 
 
 
 class Logger(object):
@@ -77,7 +80,10 @@ class Logger(object):
             plt.legend()
             save_path = os.path.join(self.log_dir, metric + '.png')
             plt.savefig(save_path)
-            plt.close()
+            plt.close()  
+            # layout = None
+            # window = None
+            # gc.collect()    
 
     def print_bests(self, metrics, cfg):
         """ print best metrics on validation set """

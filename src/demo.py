@@ -21,6 +21,7 @@ def demo(cfg):
     cfg.gpus = [0]  # -1 to use CPU
     cfg.debug = 2  # to visualize detection boxes
     dataset = YOLO('val', cfg)
+    
     cfg = Config().update_dataset_info(cfg, dataset)
 
     # preprocess image to match model's input resolution

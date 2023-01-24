@@ -1,5 +1,7 @@
+import sys
+sys.path.append('/home/hazen/Documents/PROJECTS/2.ObjDetSD/KITTI-Detection') # Added to train on custom data
 from utils.config import Config
-from utils.misc import init_env
+from utils.misc import init_env  
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -7,8 +9,9 @@ warnings.filterwarnings("ignore")
 cfg = Config().parse()
 init_env(cfg)
 
+
 if cfg.mode == 'train':
-    from train import train
+    from train import train  
     train(cfg)
 elif cfg.mode == 'eval':
     from eval import eval

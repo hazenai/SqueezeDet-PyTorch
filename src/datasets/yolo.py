@@ -15,7 +15,7 @@ class YOLO(BaseDataset):
         super(YOLO, self).__init__(phase, cfg)
 
         self.input_size = (256, 448)  # (height, width), both dividable by 16
-        self.class_names = ('bike', 'car', 'bus')
+        self.class_names = ('tram', 'car', 'pedestrian')
         # real_filtered mean and std
         # self.rgb_mean = np.array([94.87347, 96.89165, 94.70493], dtype=np.float32).reshape(1, 1, 3)
         # self.rgb_std = np.array([53.869507, 53.936283, 55.2807], dtype=np.float32).reshape(1, 1, 3)
@@ -26,7 +26,8 @@ class YOLO(BaseDataset):
         self.num_classes = len(self.class_names)
         self.class_ids_dict = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_names)}
 
-        self.data_dir = os.path.join(cfg.data_dir, 'all_real_plus_synth_8sites_plus_SVsynth_plus_seatbelt_plus_new_trajectory_data_kitti_format_5percentofwidth_filtered')
+        self.data_dir = os.path.join(cfg.data_dir, 'kitti')   #Added line for kitti data
+        # self.data_dir = os.path.join(cfg.data_dir, 'all_real_plus_synth_8sites_plus_SVsynth_plus_seatbelt_plus_new_trajectory_data_kitti_format_5percentofwidth_filtered')
         self.sample_ids, self.sample_set_path = self.get_sample_ids()
 
         self.grid_size = tuple(x //cfg.stride  for x in self.input_size)  # anchors grid 
@@ -59,7 +60,8 @@ class YOLO(BaseDataset):
 
     def load_image(self, index):
         image_id = self.sample_ids[index]
-        image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.jpg')
+        image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.png')   #Added line for kitti data      
+        # image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.jpg')
         image = default_loader(image_path)
         if image.mode == 'L':
             image = image.convert('RGB')
@@ -76,9 +78,11 @@ class YOLO(BaseDataset):
         annotations = [ann.strip().split(' ') for ann in annotations]
         class_ids, boxes = [], []
         for ann in annotations:
-            if ann[0] not in self.class_names:
+            if ann[0].lower() not in self.class_names:
+            # if ann[0] not in self.class_names:
                 continue
-            class_ids.append(self.class_ids_dict[ann[0]])
+            class_ids.append(self.class_ids_dict[ann[0].lower()])
+            # class_ids.append(self.class_ids_dict[ann[0]])
             box = [float(x) for x in ann[4:8]]
             # if box[2] <= 0:
             #     box[2] = 0.00001

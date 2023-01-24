@@ -65,7 +65,7 @@ def load_model(model, model_path, cfg):
                 file.write(msg + '\n')
             state_dict[layer] = model_state_dict[layer]
 
-    model.load_state_dict(state_dict, strict=False)
+    model.load_state_dict(state_dict, strict=True)
     msg = 'Model successfully loaded.' if success_loaded else \
           'The model does not fully load the pre-trained weight.'
     print(msg)

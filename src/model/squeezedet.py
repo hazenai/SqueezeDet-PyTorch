@@ -216,11 +216,18 @@ class SqueezeDetBase(nn.Module):
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
                     if m is self.convdet:
-                        nn.init.normal_(m.weight, mean=0.0, std=0.002)
+                        #nn.init.normal_(m.weight, mean=0.0, std=0.002)   
+                        #nn.init.normal_(m.weight, mean=0.0, std=0.041)   #good_result_1                   
+                        nn.init.normal_(m.weight, mean=0.0, std=0.023)                               
                     else:
-                        nn.init.normal_(m.weight, mean=0.0, std=0.005)
-                    if m.bias is not None:
-                        nn.init.constant_(m.bias, 0)
+                        #nn.init.normal_(m.weight, mean=0.0, std=0.005)     
+                        #nn.init.normal_(m.weight, mean=0.0, std=0.083)       #good_result_1                     
+                        nn.init.normal_(m.weight, mean=0.0, std=0.045)                           
+                    if m.bias is not None:   
+                        #nn.init.constant_(m.bias, 0) 
+                        #nn.init.uniform(m.bias,a=-0.01,b=0.01)  
+                        #nn.init.normal_(m.weight, mean=0.0, std=0.1)         #good_result_1                       
+                        nn.init.normal_(m.weight, mean=0.0, std=0.053)                           
         elif self.arch=='mobilenet_v2':
             # weight initialization
             for m in self.modules():
@@ -316,18 +323,22 @@ class Loss(nn.Module):
         negative_score_loss = torch.sum(
             self.negative_score_loss_weight * (1 - anchor_masks) * (overlaps - pred_scores) ** 2,
             dim=[1, 2]
-        ) / (self.num_anchors - num_objects)
+        ) / (self.num_anchors - num_objects)    
 
         bbox_loss = torch.sum(
             self.bbox_loss_weight * anchor_masks * (pred_deltas - gt_deltas) ** 2,
             dim=[1, 2],
-        ) / num_objects
+        ) / num_objects     
 
-        loss = class_loss + positive_score_loss + negative_score_loss + bbox_loss
+
+        # positive_score_loss = torch.sum((1/len([x for x in anchor_masks[0] if x==1]))*(anchor_masks - (anchor_masks * pred_scores)) ,dim=[1, 2])    # Added line            
+        # negative_score_loss = torch.sum((1/len([x for x in anchor_masks[0] if x==0])*2) * ((1-anchor_masks) * pred_scores),dim=[1, 2])    # Added line               
+
+        loss = class_loss + positive_score_loss + negative_score_loss + bbox_loss    
         loss_stat = {
             'loss': loss,
             'class_loss': class_loss,
-            'score_loss': positive_score_loss + negative_score_loss,
+            'score_loss': positive_score_loss + negative_score_loss, 
             'bbox_loss': bbox_loss
         }
 
