@@ -111,22 +111,35 @@ class SqueezeDetBase(nn.Module):
         self.qat = cfg.qat
         if self.arch == 'squeezedet':
             self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1)
-            self.relu1 = nn.ReLU(inplace=True)
-            self.features = nn.Sequential(
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(64, 16, 64, 64, self.qat),
-                Fire(128, 16, 64, 64, self.qat),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(128, 32, 128, 128, self.qat),
-                Fire(256, 32, 128, 128, self.qat),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(256, 48, 192, 192, self.qat),
-                Fire(384, 48, 192, 192, self.qat),
-                Fire(384, 64, 256, 256, self.qat),
-                Fire(512, 64, 256, 256, self.qat),
-                Fire(512, 96, 384, 384, self.qat),
-                Fire(768, 96, 384, 384, self.qat)
-            )
+            self.relu1 = nn.ReLU(inplace=True)  
+            self.p1 = nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True)  
+            self.f1 = Fire(64, 16, 64, 64, self.qat) 
+            self.f2 = Fire(128, 16, 64, 64, self.qat)   
+            self.p2 = nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True)   
+            self.f3 = Fire(128, 32, 128, 128, self.qat)    
+            self.f4 = Fire(256, 32, 128, 128, self.qat)   
+            self.p3 = nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True)    
+            self.f5 = Fire(256, 48, 192, 192, self.qat)
+            self.f6 = Fire(384, 48, 192, 192, self.qat)   
+            self.f7 = Fire(384, 64, 256, 256, self.qat)   
+            self.f8 = Fire(512, 64, 256, 256, self.qat)   
+            self.f9 = Fire(512, 96, 384, 384, self.qat)    
+            self.f10 = Fire(768, 96, 384, 384, self.qat)                 
+            # self.features = nn.Sequential(
+            #     nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+            #     Fire(64, 16, 64, 64, self.qat),
+            #     Fire(128, 16, 64, 64, self.qat),
+            #     nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+            #     Fire(128, 32, 128, 128, self.qat),
+            #     Fire(256, 32, 128, 128, self.qat),
+            #     nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),    
+            #     Fire(256, 48, 192, 192, self.qat),
+            #     Fire(384, 48, 192, 192, self.qat),
+            #     Fire(384, 64, 256, 256, self.qat),
+            #     Fire(512, 64, 256, 256, self.qat),
+            #     Fire(512, 96, 384, 384, self.qat),
+            #     Fire(768, 96, 384, 384, self.qat)
+            # )
             out_channels = 768
         # elif cfg.arch == 'squeezedetplus':
         #     self.features = nn.Sequential(
@@ -202,7 +215,28 @@ class SqueezeDetBase(nn.Module):
         if self.arch=='squeezedet':
             x = self.conv1(x)
             x = self.relu1(x)
-        x = self.features(x)
+        x = self.p1(x)  
+        x = self.f1(x)   
+        x_res = x       
+        x = self.f2(x)    
+        x += x_res           
+        x = self.p2(x)   
+        x = self.f3(x)       
+        x_res = x                   
+        x = self.f4(x)       
+        x += x_res                       
+        x = self.p3(x)   
+        x = self.f5(x)     
+        x_res = x                   
+        x = self.f6(x)   
+        x += x_res           
+        x = self.f7(x)   
+        x_res = x                   
+        x = self.f8(x)   
+        x += x_res           
+        x = self.f9(x)     
+        x = self.f10(x)     
+        # x = self.features(x)          
         if self.dropout is not None:
             x = self.dropout(x)
         x = self.convdet(x)
@@ -216,11 +250,14 @@ class SqueezeDetBase(nn.Module):
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
                     if m is self.convdet:
-                        nn.init.normal_(m.weight, mean=0.0, std=0.002)
+                        # nn.init.normal_(m.weight, mean=0.0, std=0.002)          
+                        nn.init.normal_(m.weight, mean=0.0, std=0.023)            
                     else:
-                        nn.init.normal_(m.weight, mean=0.0, std=0.005)
+                        # nn.init.normal_(m.weight, mean=0.0, std=0.005)              
+                        nn.init.normal_(m.weight, mean=0.0, std=0.045) 
                     if m.bias is not None:
-                        nn.init.constant_(m.bias, 0)
+                        # nn.init.constant_(m.bias, 0)        
+                        nn.init.normal_(m.weight, mean=0.0, std=0.053) 
         elif self.arch=='mobilenet_v2':
             # weight initialization
             for m in self.modules():
