@@ -2,12 +2,15 @@ import os
 import subprocess
 
 import numpy as np
-import skimage.io
+import skimage.io   
+import pybboxes as pbx               
 
 from datasets.base import BaseDataset
 from utils.boxes import generate_anchors
 from PIL import Image
-from torchvision.datasets.folder import default_loader
+from torchvision.datasets.folder import default_loader    
+
+
 
 
 class YOLO(BaseDataset):
@@ -15,7 +18,8 @@ class YOLO(BaseDataset):
         super(YOLO, self).__init__(phase, cfg)
 
         self.input_size = (256, 448)  # (height, width), both dividable by 16
-        self.class_names = ('cyclist', 'car', 'pedestrian')            
+        self.class_names = ('licenseplate', 'car', 'pedestrian')     # used for LPD                                                                          
+        # self.class_names = ('cyclist', 'car', 'pedestrian')     # used for kitti                                                           
         #self.class_names = ('bike', 'car', 'bus')            
         # real_filtered mean and std
         # self.rgb_mean = np.array([94.87347, 96.89165, 94.70493], dtype=np.float32).reshape(1, 1, 3)
@@ -32,13 +36,13 @@ class YOLO(BaseDataset):
         self.sample_ids, self.sample_set_path = self.get_sample_ids()
 
         self.grid_size = tuple(x //cfg.stride  for x in self.input_size)  # anchors grid 
-        # self.anchors_seed = np.array([[ 29, 17], [46, 32], [69, 52],
-        #                                 [109, 68], [84, 127], [155, 106], 
-        #                                 [255, 145], [183, 215], [371, 221]], dtype=np.float32) ## real_filtered anchors
+        self.anchors_seed = np.array([[ 10, 5], [5, 10], [6, 6],
+                                        [25, 13], [60, 30], [90, 43], 
+                                        [55, 15], [350, 180], [20, 43]], dtype=np.float32) ## Anchors used for LPD                    
         
-        self.anchors_seed = np.array( [[ 32, 20], [ 61, 42], [ 59, 97],
-                                        [103, 66], [122, 114], [183, 96],
-                                        [160, 152], [211, 201], [343, 205]], dtype=np.float32) ## real_filtered plus all_sites_seatbelt anchors
+        # self.anchors_seed = np.array( [[ 115, 95], [ 61, 42], [ 59, 97],                      # [ 32, 20] remove from first location [width, height]          
+        #                                 [103, 66], [122, 114], [183, 96],                        # Anchors used for kitti training           
+        #                                 [160, 152], [211, 201], [343, 205]], dtype=np.float32) ## real_filtered plus all_sites_seatbelt anchors
 
         self.anchors = generate_anchors(self.grid_size, self.input_size, self.anchors_seed)
         self.anchors_per_grid = self.anchors_seed.shape[0]

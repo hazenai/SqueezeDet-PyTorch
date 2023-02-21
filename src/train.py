@@ -82,7 +82,7 @@ def train(cfg):
             save_model(model, save_path, epoch)
 
         if cfg.val_intervals > 0 and epoch % cfg.val_intervals == 0:
-            val_stats = trainer.val_epoch(epoch, val_loader, cfg=cfg)
+            val_stats = trainer.val_epoch(epoch, val_loader, cfg=cfg)                
             logger.update(val_stats, phase='val', epoch=epoch, cfg=cfg)
 
             if not cfg.no_eval:

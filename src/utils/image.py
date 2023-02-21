@@ -75,7 +75,7 @@ def flip(image, image_meta, prob=0., boxes=None):
 
 
 def resize(image, image_meta, target_size, boxes=None):
-    height, width = image.shape[:2]
+    height, width = image.shape[:2]            
     scales = np.array([target_size[0] / height, target_size[1] / width], dtype=np.float32)
     image = cv2.resize(image, (target_size[1], target_size[0]))
 

@@ -174,7 +174,24 @@ def visualize_boxes(image, class_ids, boxes, scores=None, class_names=None, save
         num_boxes = boxes.shape[0]
         for i in range(num_boxes):
             class_id = class_ids[i]
-            bbox = boxes[i].astype(np.uint32).tolist()
+            bbox = boxes[i].astype(np.uint32).tolist()      
+            height, width = image.shape[:2]     
+            if bbox[0]<0:
+                bbox[0]=0  
+            if bbox[0]>width:
+                bbox[0]=width
+            if bbox[1]<0:
+                bbox[1]=0
+            if bbox[1]>height:
+                bbox[1]=height
+            if bbox[2]<0:
+                bbox[2]=0  
+            if bbox[2]>width:
+                bbox[2]=width
+            if bbox[3]<0:
+                bbox[3]=0  
+            if bbox[3]>height:
+                bbox[3]=height
             image = cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]),
                                 class_colors[class_id].tolist(), 2)
 

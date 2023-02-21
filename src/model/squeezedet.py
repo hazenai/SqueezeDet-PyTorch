@@ -139,7 +139,7 @@ class SqueezeDetBase(nn.Module):
             #     Fire(512, 64, 256, 256, self.qat),
             #     Fire(512, 96, 384, 384, self.qat),
             #     Fire(768, 96, 384, 384, self.qat)
-            # )
+            # )      
             out_channels = 768
         # elif cfg.arch == 'squeezedetplus':
         #     self.features = nn.Sequential(
@@ -399,10 +399,21 @@ class SqueezeDetWithLoss(nn.Module):
 
     def fuse_model(self):
         if self.arch=='squeezedet':
-            torch.quantization.fuse_modules(self.base, ['conv1', 'relu1'], inplace=True)
-            for m in self.base.features:    
-                if type(m) == Fire:
-                    torch.quantization.fuse_modules(m, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)
+            torch.quantization.fuse_modules(self.base, ['conv1', 'relu1'], inplace=True)       
+            #Added 10 line(s) for QAT training and commented next for loop                
+            torch.quantization.fuse_modules(self.base.f1, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            torch.quantization.fuse_modules(self.base.f2, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            torch.quantization.fuse_modules(self.base.f3, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            torch.quantization.fuse_modules(self.base.f4, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            torch.quantization.fuse_modules(self.base.f5, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            torch.quantization.fuse_modules(self.base.f6, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            torch.quantization.fuse_modules(self.base.f7, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            torch.quantization.fuse_modules(self.base.f8, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            torch.quantization.fuse_modules(self.base.f9, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            torch.quantization.fuse_modules(self.base.f10, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)              
+            # for m in self.base.features:    
+            #     if type(m) == Fire:
+            #         torch.quantization.fuse_modules(m, [['squeeze', 'activation_1'], ['expand1x1', 'activation_2'], ['expand3x3', 'activation_3']] , inplace=True)
         elif self.arch=='mobilenet_v2':
             # Fuse Conv+BN and Conv+BN+Relu modules prior to quantization
             # This operation does not change the numerics

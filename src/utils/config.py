@@ -11,7 +11,7 @@ class Config(object):
                                  help='train | eval | demo')
         self.parser.add_argument('--dataset', default='yolo',
                                  help='coco | kitti | yolo | lpr' )
-        self.parser.add_argument('--load_model', default='',
+        self.parser.add_argument('--load_model', default='/home/hazen/Documents/PROJECTS/2.ObjDetSD/SqueezeDet-PyTorch/exp/default_LPD_8/model_last.pth',                      
                                  help='path to pre-trained model')
         self.parser.add_argument('--debug', type=int, default=2,
                                  help='0: show nothing\n'
@@ -30,9 +30,9 @@ class Config(object):
         self.parser.add_argument('--load_pretrained', action='store_true', default=False,
                                  help='This converts the weight keys format from old repo to qat format')
     
-        self.parser.add_argument('--qat', action='store_true',  
+        self.parser.add_argument('--qat', action='store_true', default=False,   #default=True,    
                                  help='Quantization Aware Training with pytorch fake quantizer')
-        self.parser.add_argument('--lr', type=float, default=0.0001,
+        self.parser.add_argument('--lr', type=float, default=0.00016,    # default=0.001,     
                                  help='learning rate for batch size 32.')
         self.parser.add_argument('--momentum', type=float, default=0.9,
                                  help='momentum of SGD.')
@@ -40,11 +40,11 @@ class Config(object):
                                  help='weight decay of SGD.')
         self.parser.add_argument('--grad_norm', type=float, default=1,
                                  help='max norm of the gradients.')
-        self.parser.add_argument('--num_epochs', type=int, default=15500,  #default=100,
+        self.parser.add_argument('--num_epochs', type=int, default=100000,  #default=100,
                                  help='total training epochs.')
         self.parser.add_argument('--num_iters', type=int, default=-1,
                                  help='default: #samples / batch_size.')
-        self.parser.add_argument('--batch_size', type=int, default=130,   #default=32,      
+        self.parser.add_argument('--batch_size', type=int, default=140,   #default=32,      
                                  help='batch size')
         self.parser.add_argument('--master_batch_size', type=int, default=-1,
                                  help='batch size on the master gpu.')
@@ -65,25 +65,25 @@ class Config(object):
                                       'use crop/pad instead.')
         self.parser.add_argument('--class_loss_weight', type=float, default=3.,
                                  help='weight of classification loss.')
-        self.parser.add_argument('--positive_score_loss_weight', type=float, default=57.5,
+        self.parser.add_argument('--positive_score_loss_weight', type=float, default=64.5,
                                  help='positive weight of score prediction loss.')
-        self.parser.add_argument('--negative_score_loss_weight', type=float, default=117.1,
+        self.parser.add_argument('--negative_score_loss_weight', type=float, default=129.1,
                                  help='negative weight of score prediction loss.')
-        self.parser.add_argument('--bbox_loss_weight', type=float, default=17.,
+        self.parser.add_argument('--bbox_loss_weight', type=float, default=32.,
                                  help='weight of boxes regression loss.')
 
         # inference
-        self.parser.add_argument('--nms_thresh', type=float, default=0.4,
+        self.parser.add_argument('--nms_thresh', type=float, default=0.4,         # default=0.4,                                  
                                  help='discards all overlapping boxes with IoU < nms_thresh.')
         self.parser.add_argument('--score_thresh', type=float, default=0.5,
                                  help='discards all boxes with scores smaller than score_thresh.')
-        self.parser.add_argument('--keep_top_k', type=int, default=64,
+        self.parser.add_argument('--keep_top_k', type=int, default=64,    #default=64,             
                                  help='keep top k detections before nms.')
 
         # system
         self.parser.add_argument('--gpus', default='0',
                                  help='-1 for CPU, use comma for multiple gpus')
-        self.parser.add_argument('--num_workers', type=int, default=0,            #default=4,            
+        self.parser.add_argument('--num_workers', type=int, default=4,            #default=4,            
                                  help='dataloader threads. 0 for single-thread.')
         self.parser.add_argument('--not_cuda_benchmark', action='store_true',
                                  help='disable when the input size is not fixed.')
