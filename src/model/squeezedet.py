@@ -373,12 +373,12 @@ class Loss(nn.Module):
 
 class SqueezeDetWithLoss(nn.Module):
     """ Model for training """
-    def __init__(self, cfg):
+    def __init__(self, cfg, detectFlag=False):
         super(SqueezeDetWithLoss, self).__init__()
         self.base = SqueezeDetBase(cfg)
         self.resolver = PredictionResolver(cfg, log_softmax=False)
         self.loss = Loss(cfg)
-        self.detect = False
+        self.detect = detectFlag
         self.arch = cfg.arch
 
     def forward(self, batch):

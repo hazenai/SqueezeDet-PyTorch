@@ -23,8 +23,8 @@ class Detector(object):
             self.data_dir = os.path.join(self.cfg.data_dir, 'kitti')
     
     def detect(self, batch):
+        # dets = self.model(batch['image'])
         dets = self.model(batch)
-
         results = []
         batch_size = dets['class_ids'].shape[0]
         for b in range(batch_size):
@@ -43,7 +43,8 @@ class Detector(object):
             det['image_meta'] = image_meta
             results.append(det)
             if self.cfg.debug == 2:
-                image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else 'training/image_2', image_meta['image_id'] + '.png'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.png')
+                # image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else 'training/image_2', image_meta['image_id'] + '.png'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.png')
+                image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else 'training/image_2', image_meta['image_id'] + '.jpg'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.jpg')
                 image_visualize = load_image(image_path)
                 save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
                 visualize_boxes(image_visualize, det['class_ids'], det['boxes'], det['scores'],

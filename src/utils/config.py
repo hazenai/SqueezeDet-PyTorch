@@ -7,7 +7,7 @@ class Config(object):
         self.parser = argparse.ArgumentParser()
 
         # basic experiment setting
-        self.parser.add_argument('--mode', default='train',
+        self.parser.add_argument('--mode', default='demo',
                                  help='train | eval | demo')
         self.parser.add_argument('--dataset', default='yolo',
                                  help='coco | kitti | yolo | lpr' )

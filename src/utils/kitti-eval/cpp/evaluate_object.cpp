@@ -252,6 +252,7 @@ vector<double> getThresholds(vector<double> &v, double n_groundtruth){
 
     // check if right-hand-side recall with respect to current recall is close than left-hand-side one
     // in this case, skip the current detection score
+    // double l_recall, r_recall;
     double l_recall, r_recall, recall;
     l_recall = (double)(i+1)/n_groundtruth;
     if(i<(v.size()-1))

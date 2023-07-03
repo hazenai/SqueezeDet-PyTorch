@@ -297,7 +297,7 @@ class BaseDataset(torch.utils.data.Dataset):
             image, image_meta, boxes = resize(image, image_meta, self.input_size, boxes=boxes)   #Added line for kitti  
 
             image_visualize = image
-            image = image.transpose(2, 0, 1)
+            # image = image.transpose(2, 0, 1)
 
         elif self.cfg.dataset=='lpr':
             # LPR Specific
