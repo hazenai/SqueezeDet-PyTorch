@@ -19,6 +19,7 @@ class YOLO(BaseDataset):
 
         self.input_size = (256, 448)  # (height, width), both dividable by 16
         self.class_names = ('licenseplate', 'car', 'pedestrian')     # used for LPD                                                                          
+        # self.class_names = ['licenseplate']     # used for Alpr
         # self.class_names = ('cyclist', 'car', 'pedestrian')     # used for kitti                                                           
         #self.class_names = ('bike', 'car', 'bus')            
         # real_filtered mean and std
@@ -39,6 +40,10 @@ class YOLO(BaseDataset):
         self.anchors_seed = np.array([[ 10, 5], [5, 10], [6, 6],
                                         [25, 13], [60, 30], [90, 43], 
                                         [55, 15], [350, 180], [20, 43]], dtype=np.float32) ## Anchors used for LPD                    
+        # self.anchors_seed = np.array(
+        #     [[6, 5], [12, 10], [18, 10], [18, 18], [20, 24], [30, 15]],
+        #     dtype=np.float32,
+        # )  # LPDet ALPR Detector Anchor boxes with class only LP
         
         # self.anchors_seed = np.array( [[ 115, 95], [ 61, 42], [ 59, 97],                      # [ 32, 20] remove from first location [width, height]          
         #                                 [103, 66], [122, 114], [183, 96],                        # Anchors used for kitti training           
@@ -65,8 +70,8 @@ class YOLO(BaseDataset):
 
     def load_image(self, index):
         image_id = self.sample_ids[index]
-        image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.png')  #Add line for kitti 
-        # image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.jpg')
+        # image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.png')  #Add line for kitti 
+        image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.jpg')
         image = default_loader(image_path)
         if image.mode == 'L':
             image = image.convert('RGB')

@@ -153,7 +153,9 @@ class BaseDataset(torch.utils.data.Dataset):
         
         image, image_visualize, image_meta, gt_boxes, gt_class_ids = self.preprocess(image, image_meta, gt_boxes, gt_class_ids)
         gt = self.prepare_annotations(gt_class_ids, gt_boxes)
-
+        # 1 ln added (ar) 
+        image = torch.from_numpy(image.transpose(2, 0, 1)).to(torch.device('cpu'))
+        
         inp = {'image': image,
                'image_meta': image_meta,
                'gt': gt}

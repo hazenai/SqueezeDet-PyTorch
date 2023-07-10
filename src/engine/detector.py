@@ -57,7 +57,11 @@ class Detector(object):
     def detect_dataset(self, dataset, cfg):
         start_time = time.time()
 
-        data_loader = torch.utils.data.DataLoader(DataWrapper(dataset),
+        # data_loader = torch.utils.data.DataLoader(DataWrapper(dataset),
+        #                                           batch_size=self.cfg.batch_size,
+        #                                           num_workers=self.cfg.num_workers,
+        #                                           pin_memory=True)
+        data_loader = torch.utils.data.DataLoader(dataset,
                                                   batch_size=self.cfg.batch_size,
                                                   num_workers=self.cfg.num_workers,
                                                   pin_memory=True)
@@ -142,12 +146,15 @@ class DataWrapper(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         image, image_id = self.dataset.load_image(index)
+        # added by ar: gt_class_ids, gt_boxes = self.dataset.load_annotations(index)
         image_meta = {'index': index,
                       'image_id': image_id,
                       'orig_size': np.array(image.shape, dtype=np.int32)}
 
-        image, _, image_meta, gt_boxes, gt_class_ids = self.dataset.preprocess(image, image_meta)
-
+        image, _, image_meta, gt_boxes, gt_class_ids = self.dataset.preprocess(image, image_meta, gt_boxes)
+        image = torch.from_numpy(image.transpose(2, 0, 1)).to(torch.device('cpu'))
+        
+        
         batch = {'image': image,
                  'image_meta': image_meta}
         return batch

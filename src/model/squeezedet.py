@@ -124,7 +124,8 @@ class SqueezeDetBase(nn.Module):
             self.f7 = Fire(384, 64, 256, 256, self.qat)   
             self.f8 = Fire(512, 64, 256, 256, self.qat)   
             self.f9 = Fire(512, 96, 384, 384, self.qat)    
-            self.f10 = Fire(768, 96, 384, 384, self.qat)                 
+            self.f10 = Fire(768, 96, 384, 384, self.qat)   
+            #               
             # self.features = nn.Sequential(
             #     nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
             #     Fire(64, 16, 64, 64, self.qat),
@@ -140,7 +141,8 @@ class SqueezeDetBase(nn.Module):
             #     Fire(512, 96, 384, 384, self.qat),
             #     Fire(768, 96, 384, 384, self.qat)
             # )      
-            out_channels = 768
+            # out_channels = 768
+            out_channels = 512
         # elif cfg.arch == 'squeezedetplus':
         #     self.features = nn.Sequential(
         #         nn.Conv2d(3, 96, kernel_size=7, stride=2, padding=3),
@@ -382,6 +384,7 @@ class SqueezeDetWithLoss(nn.Module):
         self.arch = cfg.arch
 
     def forward(self, batch):
+
         pred = self.base(batch['image'])
         if not self.detect:
             loss, loss_stats = self.loss(pred, batch['gt'])
