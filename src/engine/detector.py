@@ -147,7 +147,9 @@ class DataWrapper(torch.utils.data.Dataset):
                       'orig_size': np.array(image.shape, dtype=np.int32)}
 
         image, _, image_meta, gt_boxes, gt_class_ids = self.dataset.preprocess(image, image_meta)
-
+        # print('Hi there i am in Data wrapper with index {}'.format(index))
+        image = torch.from_numpy(image.transpose(2, 0, 1)).to(torch.device('cpu'))
+        
         batch = {'image': image,
                  'image_meta': image_meta}
         return batch
