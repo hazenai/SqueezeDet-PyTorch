@@ -123,8 +123,10 @@ class SqueezeDetBase(nn.Module):
             self.f6 = Fire(384, 48, 192, 192, self.qat)   
             self.f7 = Fire(384, 64, 256, 256, self.qat)   
             self.f8 = Fire(512, 64, 256, 256, self.qat)   
-            self.f9 = Fire(512, 96, 384, 384, self.qat)    
-            self.f10 = Fire(768, 96, 384, 384, self.qat)                 
+            # self.f9 = Fire(512, 96, 384, 384, self.qat)    
+            # self.f10 = Fire(768, 96, 384, 384, self.qat)                 
+                        
+            
             # self.features = nn.Sequential(
             #     nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
             #     Fire(64, 16, 64, 64, self.qat),
@@ -234,8 +236,9 @@ class SqueezeDetBase(nn.Module):
         x_res = x                   
         x = self.f8(x)   
         x += x_res           
-        x = self.f9(x)     
-        x = self.f10(x)     
+        # x = self.f9(x)     
+        # x = self.f10(x)
+        #      
         # x = self.features(x)          
         if self.dropout is not None:
             x = self.dropout(x)
