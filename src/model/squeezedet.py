@@ -142,7 +142,7 @@ class SqueezeDetBase(nn.Module):
             #     Fire(512, 96, 384, 384, self.qat),
             #     Fire(768, 96, 384, 384, self.qat)
             # )      
-            out_channels = 768
+            # out_channels = 768
         # elif cfg.arch == 'squeezedetplus':
         #     self.features = nn.Sequential(
         #         nn.Conv2d(3, 96, kernel_size=7, stride=2, padding=3),
@@ -161,7 +161,7 @@ class SqueezeDetBase(nn.Module):
         #         Fire(512, 384, 256, 256),
         #         Fire(512, 384, 256, 256),
         #     )
-        #     out_channels = 512
+            out_channels = 512
         elif self.arch == 'mobilenet_v2':
             width_mult=1.0
             round_nearest=8
@@ -203,14 +203,51 @@ class SqueezeDetBase(nn.Module):
         else:
             raise ValueError('Invalid architecture.')
 
-        self.dropout = nn.Dropout(cfg.dropout_prob, inplace=True) \
-            if cfg.dropout_prob > 0 else None
+        # self.dropout = nn.Dropout(cfg.dropout_prob, inplace=True) \
+        #     if cfg.dropout_prob > 0 else None
         self.convdet = nn.Conv2d(out_channels,
                                  cfg.anchors_per_grid * (cfg.num_classes + 5),
                                  kernel_size=3, padding=1)
 
         self.init_weights()
 
+    # def forward(self, x):
+    #     if self.qat:
+    #         x = self.quant(x)
+    #     if self.arch=='squeezedet':
+    #         x = self.conv1(x)
+    #         x = self.relu1(x)
+    #     x = self.p1(x)  
+    #     x = self.f1(x)   
+    #     x_res = x       
+    #     x = self.f2(x)    
+    #     x += x_res           
+    #     x = self.p2(x)   
+    #     x = self.f3(x)       
+    #     x_res = x                   
+    #     x = self.f4(x)       
+    #     x += x_res                       
+    #     x = self.p3(x)   
+    #     x = self.f5(x)     
+    #     x_res = x                   
+    #     x = self.f6(x)   
+    #     x += x_res           
+    #     x = self.f7(x)   
+    #     x_res = x                   
+    #     x = self.f8(x)   
+    #     x += x_res           
+    #     # x = self.f9(x)     
+    #     # x = self.f10(x)
+    #     #      
+    #     # x = self.features(x)          
+    #     if self.dropout is not None:
+    #         x = self.dropout(x)
+    #     x = self.convdet(x)
+    #     x = x.permute(0, 2, 3, 1).contiguous()
+    #     x = x.view(-1, self.num_anchors, self.num_classes + 5)
+    #     if self.qat:
+    #         x = self.dequant(x)
+    #     return x
     def forward(self, x):
         if self.qat:
             x = self.quant(x)
@@ -219,34 +256,28 @@ class SqueezeDetBase(nn.Module):
             x = self.relu1(x)
         x = self.p1(x)  
         x = self.f1(x)   
-        x_res = x       
         x = self.f2(x)    
-        x += x_res           
         x = self.p2(x)   
         x = self.f3(x)       
-        x_res = x                   
         x = self.f4(x)       
-        x += x_res                       
         x = self.p3(x)   
         x = self.f5(x)     
-        x_res = x                   
         x = self.f6(x)   
-        x += x_res           
         x = self.f7(x)   
-        x_res = x                   
         x = self.f8(x)   
-        x += x_res           
+        # x += x_res           
         # x = self.f9(x)     
         # x = self.f10(x)
         #      
-        # x = self.features(x)          
-        if self.dropout is not None:
-            x = self.dropout(x)
+        # x = self.features(x)
+        #           
+        # if self.dropout is not None:
+        #     x = self.dropout(x)
         x = self.convdet(x)
         x = x.permute(0, 2, 3, 1).contiguous()
         x = x.view(-1, self.num_anchors, self.num_classes + 5)
-        if self.qat:
-            x = self.dequant(x)
+        # if self.qat:
+        #     x = self.dequant(x)
         return x
     def init_weights(self):
         if self.arch=='squeezedet':
@@ -379,11 +410,16 @@ class SqueezeDetWithLoss(nn.Module):
     def __init__(self, cfg, detectFlag=False):
         super(SqueezeDetWithLoss, self).__init__()
         self.base = SqueezeDetBase(cfg)
-        self.resolver = PredictionResolver(cfg, log_softmax=False)
+        # self.resolver = PredictionResolver(cfg, log_softmax=False)
+        self.resolver = PredictionResolverSingleClass(cfg, log_softmax=False)
+        
         self.loss = Loss(cfg)
         self.detect = detectFlag
         self.arch = cfg.arch
-
+        print('-'*20)
+        print('quantization is: {}'.format(cfg.qat))
+        print('-'*20)
+        
     def forward(self, batch):
         pred = self.base(batch['image'])
         if not self.detect:
@@ -391,7 +427,9 @@ class SqueezeDetWithLoss(nn.Module):
             return loss, loss_stats
         
         else:
-            pred_class_probs, _, pred_scores, _, pred_boxes = self.resolver(pred)
+            # pred_class_probs, _, pred_scores, _, pred_boxes = self.resolver(pred)
+            pred_class_probs, pred_scores, pred_boxes = self.resolver(pred)
+            
             pred_class_probs *= pred_scores
             pred_class_ids = torch.argmax(pred_class_probs, dim=2)
             pred_scores = torch.max(pred_class_probs, dim=2)[0]
@@ -434,7 +472,7 @@ class SqueezeDet(nn.Module):
         self.base = SqueezeDetBase(cfg)
         self.arch = cfg.arch
         self.qat = cfg.qat
-
+        
     def forward(self, image):
         pred = self.base(image)
         return pred

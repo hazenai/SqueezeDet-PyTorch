@@ -17,8 +17,9 @@ class YOLO(BaseDataset):
     def __init__(self, phase, cfg):
         super(YOLO, self).__init__(phase, cfg)
 
-        self.input_size = (256, 448)  # (height, width), both dividable by 16
-        self.class_names = ('licenseplate', 'car', 'pedestrian')     # used for LPD                                                                          
+        # self.input_size = (256, 448)  # (height, width), both dividable by 16
+        self.input_size = (256, 256)  # (height, width), changed above with this one for alpr det
+        self.class_names = ['licenseplate']     # used for LPD                                                                          
         # self.class_names = ('cyclist', 'car', 'pedestrian')     # used for kitti                                                           
         #self.class_names = ('bike', 'car', 'bus')            
         # real_filtered mean and std
@@ -26,8 +27,11 @@ class YOLO(BaseDataset):
         # self.rgb_std = np.array([53.869507, 53.936283, 55.2807], dtype=np.float32).reshape(1, 1, 3)
         
         # real_filtered plus all_sites_seatbelt mean and std
-        self.rgb_mean = np.array([104.90631, 105.41336, 104.70162], dtype=np.float32).reshape(1, 1, 3)
-        self.rgb_std = np.array([50.69564, 49.60443, 50.158844], dtype=np.float32).reshape(1, 1, 3)
+        # self.rgb_mean = np.array([104.90631, 105.41336, 104.70162], dtype=np.float32).reshape(1, 1, 3)
+        # self.rgb_std = np.array([50.69564, 49.60443, 50.158844], dtype=np.float32).reshape(1, 1, 3)
+        self.rgb_mean = np.array([0.0, 0.0, 0.0], dtype=np.float32).reshape(1, 1, 3)
+        self.rgb_std = np.array([40.0, 40.0, 40.0], dtype=np.float32).reshape(1, 1, 3)
+
         self.num_classes = len(self.class_names)
         self.class_ids_dict = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_names)}
 
@@ -36,14 +40,18 @@ class YOLO(BaseDataset):
         self.sample_ids, self.sample_set_path = self.get_sample_ids()
 
         self.grid_size = tuple(x //cfg.stride  for x in self.input_size)  # anchors grid 
-        self.anchors_seed = np.array([[ 10, 5], [5, 10], [6, 6],
-                                        [25, 13], [60, 30], [90, 43], 
-                                        [55, 15], [350, 180], [20, 43]], dtype=np.float32) ## Anchors used for LPD                    
+        # self.anchors_seed = np.array([[ 10, 5], [5, 10], [6, 6],
+        #                                 [25, 13], [60, 30], [90, 43], 
+        #                                 [55, 15], [350, 180], [20, 43]], dtype=np.float32) ## Anchors used for LPD                    
         
         # self.anchors_seed = np.array( [[ 115, 95], [ 61, 42], [ 59, 97],                      # [ 32, 20] remove from first location [width, height]          
         #                                 [103, 66], [122, 114], [183, 96],                        # Anchors used for kitti training           
         #                                 [160, 152], [211, 201], [343, 205]], dtype=np.float32) ## real_filtered plus all_sites_seatbelt anchors
 
+        self.anchors_seed = np.array(
+            [[6, 5], [12, 10], [18, 10], [18, 18], [20, 24], [30, 15]],
+            dtype=np.float32,
+        )  # ALPR Detector Anchor boxes
         self.anchors = generate_anchors(self.grid_size, self.input_size, self.anchors_seed)
         self.anchors_per_grid = self.anchors_seed.shape[0]
         self.num_anchors = self.anchors.shape[0]
@@ -51,16 +59,17 @@ class YOLO(BaseDataset):
         self.results_dir = os.path.join(cfg.save_dir, 'results')
 
     def get_sample_ids(self):
+        print('pase is: {}'.format(self.phase))
         sample_set_name = 'train.txt' if self.phase == 'train' \
             else 'val.txt' if self.phase == 'val' \
             else 'trainval.txt' if self.phase == 'trainval' \
             else None
 
         sample_ids_path = os.path.join(self.data_dir, 'image_sets', sample_set_name)
+        print(sample_ids_path)
         with open(sample_ids_path, 'r') as fp:
             sample_ids = fp.readlines()
         sample_ids = tuple(x.strip() for x in sample_ids)
-
         return sample_ids, sample_ids_path
 
     def load_image(self, index):

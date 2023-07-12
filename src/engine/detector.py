@@ -6,10 +6,11 @@ import torch
 import torch.utils.data
 from torchvision.ops import nms
 
-from utils.image import image_postprocess
-from utils.boxes import boxes_postprocess, visualize_boxes
+from utils.image import image_postprocess, whiten, drift, flip, resize, crop_or_pad
+from utils.boxes import boxes_postprocess, visualize_boxes, compute_deltas
 from utils.misc import MetricLogger
 from torchvision.datasets.folder import default_loader
+
 
 
 class Detector(object):
@@ -146,9 +147,21 @@ class DataWrapper(torch.utils.data.Dataset):
                       'image_id': image_id,
                       'orig_size': np.array(image.shape, dtype=np.int32)}
 
-        image, _, image_meta, gt_boxes, gt_class_ids = self.dataset.preprocess(image, image_meta)
-        # print('Hi there i am in Data wrapper with index {}'.format(index))
+        # image, _, image_meta, gt_boxes, gt_class_ids = self.dataset.preprocess(image, image_meta)
+        # image = torch.from_numpy(image.transpose(2, 0, 1)).to(torch.device('cpu'))
+        
+        # whiten the image
+        image, image_meta = whiten(image, image_meta, self.dataset.rgb_mean, self.dataset.rgb_std)
+        # resize the image
+        image, image_meta, boxes = resize(image, image_meta, self.dataset.input_size, boxes=None)
+        image = (image * 2) - 1
         image = torch.from_numpy(image.transpose(2, 0, 1)).to(torch.device('cpu'))
+        # image = image.unsqueeze(0).to('cpu')
+        # image_meta = {k: torch.from_numpy(v).unsqueeze(0).to('cpu') if isinstance(v, np.ndarray)
+        #               else [v] for k, v in image_meta.items()}
+        # image_meta = {k: torch.from_numpy(v).to('cpu') if isinstance(v, np.ndarray)
+        #               else [v] for k, v in image_meta.items()}
+        
         
         batch = {'image': image,
                  'image_meta': image_meta}

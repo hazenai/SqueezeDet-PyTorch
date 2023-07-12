@@ -11,13 +11,13 @@ class Config(object):
                                  help='train | eval | demo')
         self.parser.add_argument('--dataset', default='yolo',
                                  help='coco | kitti | yolo | lpr' )
-        self.parser.add_argument('--load_model', default='/home/hazen/Documents/PROJECTS/2.ObjDetSD/SqueezeDet-PyTorch/exp/default_LPD_8/model_last.pth',                      
+        self.parser.add_argument('--load_model', default='/workspace/SqueezeDet-PyTorch_simple_bypass/models/alpr_det.pth',                      
                                  help='path to pre-trained model')
         self.parser.add_argument('--debug', type=int, default=2,
                                  help='0: show nothing\n'
                                       '1: visualize pre-processed image and boxes\n'
                                       '2: visualize detections.')
-        self.parser.add_argument('--exp_id', default='default')
+        self.parser.add_argument('--exp_id', default='temp_default_eval')
 
         # model
         self.parser.add_argument('--arch', default='squeezedet',

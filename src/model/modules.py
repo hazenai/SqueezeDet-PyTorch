@@ -59,8 +59,9 @@ def deltas_to_boxes_tflite(deltas, anchors, input_size):
         anchors[..., [3]] * torch.exp(deltas[..., [3]])
     ], dim=2)
 
-    # boxes_xyxy = xywh_to_xyxy(boxes_xywh)
-    return boxes_xywh
+    boxes_xyxy = xywh_to_xyxy(boxes_xywh)
+    return boxes_xyxy
+    # return boxes_xywh
 
 
 def compute_overlaps(boxes1, boxes2):
