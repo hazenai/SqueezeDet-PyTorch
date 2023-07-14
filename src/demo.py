@@ -51,7 +51,8 @@ def demo(cfg):
     # cfg.load_model = '../exp/real_filtered_3class/model_best.pth'
     # cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/models/squeezedet_kitti_epoch280.pth'
     # cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/models/model_5040.pth'
-    cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/models/alpr_det.pth'
+    # cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/models/alpr_det.pth'
+    cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/exp/temp_default_train/model_1400.pth'
 
     # cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/models/all_real_plus_synth_8sites_plus_SVsynth_plus_seatbelt_plus_new_trajectory_data_kitti_format_5percentofwidth_filtered_cont.pth'
     cfg.gpus = [0]  # -1 to use CPU
@@ -86,7 +87,7 @@ def demo(cfg):
     sample_image_paths = glob.glob(os.path.join(sample_images_dir, '*.jpg'))
 
     base_images_dir_data = '/workspace/SqueezeDet-PyTorch/data/kitti/training/image_2'
-    sample_ids_path='/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/val_oneimage.txt'
+    sample_ids_path='/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/train_oneimage.txt'
     
 
     with open(sample_ids_path, 'r') as fp:
@@ -123,7 +124,7 @@ def demo(cfg):
         
         results = detector.detect(inp)
         
-        
+        print(results)
         for res in results:
             num_boxes = len(res['class_ids'])
             for i in range(num_boxes):

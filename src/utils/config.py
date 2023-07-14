@@ -7,17 +7,18 @@ class Config(object):
         self.parser = argparse.ArgumentParser()
 
         # basic experiment setting
-        self.parser.add_argument('--mode', default='demo',
+        self.parser.add_argument('--mode', default='train',
                                  help='train | eval | demo')
         self.parser.add_argument('--dataset', default='yolo',
                                  help='coco | kitti | yolo | lpr' )
-        self.parser.add_argument('--load_model', default='/workspace/SqueezeDet-PyTorch_simple_bypass/models/alpr_det.pth',                      
+        self.parser.add_argument('--load_model', default='/workspace/SqueezeDet-PyTorch_simple_bypass/models/squeezenet1_1-f364aa15.pth',                      
                                  help='path to pre-trained model')
         self.parser.add_argument('--debug', type=int, default=2,
                                  help='0: show nothing\n'
                                       '1: visualize pre-processed image and boxes\n'
                                       '2: visualize detections.')
-        self.parser.add_argument('--exp_id', default='temp_default_eval')
+        self.parser.add_argument('--exp_id', default='temp_default_train')
+        self.parser.add_argument('--oneimage', action='store_true', default=False,help='loads train_oneimage.txt or val_oneimage.txt')
 
         # model
         self.parser.add_argument('--arch', default='squeezedet',
@@ -27,7 +28,7 @@ class Config(object):
         self.parser.add_argument('--dropout_prob', type=float, default=0,
                                  help='probability of dropout.')
         # train
-        self.parser.add_argument('--load_pretrained', action='store_true', default=False,
+        self.parser.add_argument('--load_pretrained', action='store_true', default=True,
                                  help='This converts the weight keys format from old repo to qat format')
     
         self.parser.add_argument('--qat', action='store_true', default=False,   #default=True,    
@@ -48,7 +49,7 @@ class Config(object):
                                  help='batch size')
         self.parser.add_argument('--master_batch_size', type=int, default=-1,
                                  help='batch size on the master gpu.')
-        self.parser.add_argument('--save_intervals', type=int, default=20,
+        self.parser.add_argument('--save_intervals', type=int, default=100,
                                  help='number of epochs to save model.')
         self.parser.add_argument('--val_intervals', type=int, default=5,
                                  help='number of epochs to run validation.')

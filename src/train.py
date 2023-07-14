@@ -51,7 +51,7 @@ def train(cfg):
                                                num_workers=cfg.num_workers,
                                                pin_memory=True,
                                                shuffle=True,
-                                               drop_last=True)
+                                               drop_last=False)
 
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=cfg.batch_size,

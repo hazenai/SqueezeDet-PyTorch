@@ -10,6 +10,10 @@ from utils.boxes import generate_anchors
 from PIL import Image
 from torchvision.datasets.folder import default_loader    
 
+from utils.image import whiten, drift, flip, resize, crop_or_pad
+from utils.boxes import compute_deltas, visualize_boxes
+import torch
+
 
 
 
@@ -60,10 +64,17 @@ class YOLO(BaseDataset):
 
     def get_sample_ids(self):
         print('pase is: {}'.format(self.phase))
-        sample_set_name = 'train.txt' if self.phase == 'train' \
-            else 'val.txt' if self.phase == 'val' \
+        if self.cfg.oneimage:
+            sample_set_name = 'train_oneimage.txt' if self.phase == 'train' \
+            else 'val_oneimage.txt' if self.phase == 'val' \
             else 'trainval.txt' if self.phase == 'trainval' \
             else None
+
+        else:
+            sample_set_name = 'train.txt' if self.phase == 'train' \
+                else 'val.txt' if self.phase == 'val' \
+                else 'trainval.txt' if self.phase == 'trainval' \
+                else None
 
         sample_ids_path = os.path.join(self.data_dir, 'image_sets', sample_set_name)
         print(sample_ids_path)
@@ -110,6 +121,66 @@ class YOLO(BaseDataset):
             return class_ids, boxes
         boxes = None
         return class_ids, boxes
+    
+    def load_annotations_comma_and_Space_format(self, index):
+        ann_id = self.sample_ids[index]
+        ann_path = os.path.join(self.data_dir, 'training/label_2', ann_id + '.txt')
+        with open(ann_path, 'r') as fp:
+            annotations = fp.readlines()
+
+
+        # ls = 
+        # annotations = [an.strip() for an in [ann.split(',') for ann in annotations][0]]
+        class_ids, boxes, res = [], [], []
+        for an in [ann.split(',') for ann in annotations]:
+            tempBox = [float(aa.strip()) for aa in an]
+            # modified according to given gt_labels in the form of y1,x1,y2,x2 and converting them to x1,y1,x2,y2
+            res.append([tempBox[1],tempBox[0], tempBox[3], tempBox[2]])
+            class_ids.append(self.class_ids_dict['licenseplate'])
+        annotations_processed = res.copy()
+        boxes = annotations_processed.copy()
+
+        # box = [float(x) for x in annotations[:]]
+        # # true_boxes.append([name, 'licenseplate', box[0], box[1], box[2], box[3]])
+        # for i in range(len(box)):
+        #     class_ids.append(self.class_ids_dict['licenseplate'])
+        #     
+        # annotations = [ann.strip().split(' ') for ann in annotations]
+        # class_ids, boxes = [], []
+        # for ann in annotations:
+        #     if ann[0].lower() not in self.class_names:
+        #     # if ann[0] not in self.class_names:
+        #         continue
+        #     class_ids.append(self.class_ids_dict['licenseplate'])
+        #     # class_ids.append(self.class_ids_dict[ann[0]])
+        #     box = [float(x) for x in ann[4:8]]
+        #     # if box[2] <= 0:
+        #     #     box[2] = 0.00001
+        #     # if box[3] <= 0:
+        #     #     box[3] = 0.00001
+        #     boxes.append(box)
+
+        class_ids = np.array(class_ids, dtype=np.int16)
+        boxes = np.array(boxes, dtype=np.float32)
+        if len(boxes):
+            return class_ids, boxes
+        boxes = None
+        return class_ids, boxes
+
+    # ========================================
+    #                preprocess yolo
+    # ========================================
+    def preprocess(self, image, image_meta, boxes=None, class_ids=None):
+        # print('Preprocess from child of baseDataset: yolo is called')
+        image, image_meta = whiten(image, image_meta, self.rgb_mean, self.rgb_std)
+        # resize the image
+        image, image_meta, boxes = resize(image, image_meta, self.input_size, boxes=boxes)
+        image = (image * 2) - 1
+        image = torch.from_numpy(image.transpose(2, 0, 1))
+        image_visualize = image
+        return image, image_visualize, image_meta, boxes, class_ids
+
+        # return super().preprocess(image, image_meta, boxes, class_ids)
 
     # ========================================
     #                evaluation

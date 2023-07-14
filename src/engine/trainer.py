@@ -17,7 +17,7 @@ class Trainer(object):
 
     def run_epoch(self, phase, epoch, data_loader, cfg):
         start_time = time.time()
-
+        print(len(data_loader))
         if phase == 'train':
             self.model.train()
         else:

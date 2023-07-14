@@ -145,7 +145,8 @@ class BaseDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         image, image_id = self.load_image(index)
-        gt_class_ids, gt_boxes = self.load_annotations(index)
+        # gt_class_ids, gt_boxes = self.load_annotations(index)
+        gt_class_ids, gt_boxes = self.load_annotations_comma_and_Space_format(index)
 
         image_meta = {'index': index,
                       'image_id': image_id,
@@ -299,6 +300,13 @@ class BaseDataset(torch.utils.data.Dataset):
             image_visualize = image
             # image = image.transpose(2, 0, 1)
 
+
+            image, image_meta = whiten(image, image_meta, self.rgb_mean, self.rgb_std)
+            # resize the image
+            image, image_meta, boxes = resize(image, image_meta, self.input_size, boxes=None)
+            image = (image * 2) - 1
+            image_visualize = image
+
         elif self.cfg.dataset=='lpr':
             # LPR Specific
             image = Image.fromarray(cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_BGR2RGB))
@@ -351,3 +359,6 @@ class BaseDataset(torch.utils.data.Dataset):
 
     def evaluate(self):
         raise NotImplementedError
+    
+    # def preprocess(self):
+    #     raise NotImplementedError

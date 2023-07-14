@@ -416,9 +416,7 @@ class SqueezeDetWithLoss(nn.Module):
         self.loss = Loss(cfg)
         self.detect = detectFlag
         self.arch = cfg.arch
-        print('-'*20)
         print('quantization is: {}'.format(cfg.qat))
-        print('-'*20)
         
     def forward(self, batch):
         pred = self.base(batch['image'])
