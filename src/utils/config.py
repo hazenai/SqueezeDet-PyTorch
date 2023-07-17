@@ -18,6 +18,8 @@ class Config(object):
                                       '1: visualize pre-processed image and boxes\n'
                                       '2: visualize detections.')
         self.parser.add_argument('--exp_id', default='temp_default_train')
+        
+        self.parser.add_argument('--sub_data_dir', help='training/synth_180k')
         self.parser.add_argument('--oneimage', action='store_true', default=False,help='loads train_oneimage.txt or val_oneimage.txt')
 
         # model
@@ -49,7 +51,7 @@ class Config(object):
                                  help='batch size')
         self.parser.add_argument('--master_batch_size', type=int, default=-1,
                                  help='batch size on the master gpu.')
-        self.parser.add_argument('--save_intervals', type=int, default=100,
+        self.parser.add_argument('--save_intervals', type=int, default=30,
                                  help='number of epochs to save model.')
         self.parser.add_argument('--val_intervals', type=int, default=5,
                                  help='number of epochs to run validation.')
@@ -101,6 +103,7 @@ class Config(object):
         cfg.gpus = [int(gpu) for gpu in cfg.gpus.split(',')]
         cfg.gpus = [i for i in range(len(cfg.gpus))] if cfg.gpus[0] >= 0 else [-1]
 
+        # cfg.sub_data_dir = 'training/synth_180k/image_2'
         cfg.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
         cfg.data_dir = os.path.join(cfg.root_dir, 'data')
         cfg.exp_dir = os.path.join(cfg.root_dir, 'exp')

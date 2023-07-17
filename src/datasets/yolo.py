@@ -86,7 +86,8 @@ class YOLO(BaseDataset):
     def load_image(self, index):
         image_id = self.sample_ids[index]
         # image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.png')  #Add line for kitti 
-        image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.jpg')
+        # image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.jpg')
+        image_path = os.path.join(self.data_dir, self.cfg.sub_data_dir + '/image_2', image_id + '.jpg')
         image = default_loader(image_path)
         if image.mode == 'L':
             image = image.convert('RGB')
@@ -96,7 +97,7 @@ class YOLO(BaseDataset):
 
     def load_annotations(self, index):
         ann_id = self.sample_ids[index]
-        ann_path = os.path.join(self.data_dir, 'training/label_2', ann_id + '.txt')
+        ann_path = os.path.join(self.data_dir, self.cfg.sub_data_dir + '/label_2', ann_id + '.txt')
         with open(ann_path, 'r') as fp:
             annotations = fp.readlines()
 
@@ -124,7 +125,7 @@ class YOLO(BaseDataset):
     
     def load_annotations_comma_and_Space_format(self, index):
         ann_id = self.sample_ids[index]
-        ann_path = os.path.join(self.data_dir, 'training/label_2', ann_id + '.txt')
+        ann_path = os.path.join(self.data_dir, self.cfg.sub_data_dir + '/label_2', ann_id + '.txt')
         with open(ann_path, 'r') as fp:
             annotations = fp.readlines()
 
