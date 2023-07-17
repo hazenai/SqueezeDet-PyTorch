@@ -5,19 +5,22 @@ import os
                                                
 # Change below paths to compute mAP for different boxes according to your requirements                                                                             
 base_path = '/workspace/SqueezeDet-PyTorch_simple_bypass'                                          
-gt_boxes_idx_path = os.path.join(base_path, 'data/kitti/image_sets/val.txt')                                              
+# gt_boxes_idx_path = os.path.join(base_path, 'filteredImages_size>=200_or.txt')                                              
 gt_boxes_path = os.path.join(base_path, 'data/kitti/training/label_2')                                                                        
-pred_boxes_path = os.path.join(base_path, 'exp/eval_alpr_synthData/results/data')        
-
+pred_boxes_path = os.path.join(base_path, 'exp/train_size>=200_or_exp_01/results/data')     
+gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/train_size>=200_or_exp_01/debug'))
+gtImageIdsPath = [imgId[:-4] for imgId in gtImageIdsPath]
 
 num_classes = ('licenseplate','car')                                                                                                       
-iou_threshold = 0.8                                                                                                                           
+iou_threshold = 0.8
 average_precisions = []                                                                                                     
-epsilon = 1e-6                                                                           
-with open(gt_boxes_idx_path, 'r') as fp:
-    names = fp.readlines()
+epsilon = 1e-6
 
-names = [name.strip() for name in names]
+# with open(gt_boxes_idx_path, 'r') as fp:
+#     names = fp.readlines()
+
+# names = [name.strip() for name in names]
+names = gtImageIdsPath.copy()
 
 def iou_calc(pred_bbox, gt_bbox):                                                                                                                                          
     pred_x1, pred_y1, pred_x2, pred_y2 = pred_bbox                                                     
@@ -42,7 +45,7 @@ def iou_calc(pred_bbox, gt_bbox):
        
 # Assumptions: 
 # 1. Gt labels are of licensplate 
-# 2. do not have the label licenseplate in gt files
+# 2. do not have the label "licenseplate" in gt files
 # 3. bboxes are comma seperated 
 # 4. One file only has one label (i,e licenseplate) input images are crops of vehicles and can only have 1 gt 
 # 5. hardcoding the class label "licenseplate" in true_boxes
@@ -53,12 +56,14 @@ for name in names:
     file_path = os.path.join(gt_boxes_path, name+'.txt')                                                                                  
     with open(file_path, 'r') as fp:
         annotations = fp.readlines()
+
     # For annotations / ground truths in kitti format: seperated by spaces
     # annotations = [ann.strip().split(' ') for ann in annotations]
     # For annotations / ground truths in yolo format: seperated by commas and removing any space if left after splitting
-    annotations = [an.strip() for an in [ann.split(',') for ann in annotations][0]]
-    box = [float(x) for x in annotations[:]]                                                                  
-    true_boxes.append([name, 'licenseplate', box[0], box[1], box[2], box[3]])
+    for an in [ann.split(',') for ann in annotations]:
+        tempBox = [float(aa.strip()) for aa in an]
+        true_boxes.append([name, 'licenseplate', tempBox[0],tempBox[1], tempBox[2], tempBox[3]])
+
 
 # prediction is in the form of standard kitti:
 # className -1 -1 bbox[0] bbox[1] bbox[2] bbox[3] 0 0 0 0 0 0 0 <accuracy>
@@ -71,7 +76,8 @@ for name in os.listdir(pred_boxes_path):
         box = [float(x) for x in ann[4:8]]                                                                  
         pred_boxes.append([name.split('.')[0], ann[0].lower(), float(ann[-1]), box[0], box[1], box[2], box[3]])                                                                                             
 
-
+print("Total Ground Truth Images File IDs: ", len(names))
+print("Total Prediction File IDs: ", len(pred_boxes))
 
 for c in num_classes:                                                                                                                                           
     detections, ground_truths = [], []                                                                              
@@ -131,4 +137,4 @@ for c in num_classes:
     break      # Add break statement as we only have one class in this case i-e licenseplate                                                                                                               
                                                                                                                         
 mAP = sum(average_precisions)/len(average_precisions)                                                             
-print(mAP*100)                                                                                                  
+print("mAp socre @ iou threshold {} = {}".format(iou_threshold, mAP*100))                                                                                                  

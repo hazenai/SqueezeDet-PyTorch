@@ -52,7 +52,7 @@ def demo(cfg):
     # cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/models/squeezedet_kitti_epoch280.pth'
     # cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/models/model_5040.pth'
     # cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/models/alpr_det.pth'
-    cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/exp/temp_default_train/model_1400.pth'
+    cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/exp/initial_eval_01/model_last.pth'
 
     # cfg.load_model = '/workspace/SqueezeDet-PyTorch_simple_bypass/models/all_real_plus_synth_8sites_plus_SVsynth_plus_seatbelt_plus_new_trajectory_data_kitti_format_5percentofwidth_filtered_cont.pth'
     cfg.gpus = [0]  # -1 to use CPU
@@ -87,7 +87,7 @@ def demo(cfg):
     sample_image_paths = glob.glob(os.path.join(sample_images_dir, '*.jpg'))
 
     base_images_dir_data = '/workspace/SqueezeDet-PyTorch/data/kitti/training/image_2'
-    sample_ids_path='/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/train_oneimage.txt'
+    sample_ids_path='/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/val_oneimage.txt'
     
 
     with open(sample_ids_path, 'r') as fp:
@@ -113,7 +113,10 @@ def demo(cfg):
         image, image_meta = whiten(image, image_meta, rgb_mean, rgb_std)
         # resize the image
         image, image_meta, boxes = resize(image, image_meta, input_size, boxes=None)
+        cv2.imwrite(os.path.join('/workspace/SqueezeDet-PyTorch_simple_bypass/exp/images_resized_befor_model_input/',(image_meta['image_id']+'.png')),
+                    image)
         image = (image * 2) - 1
+        
         image = torch.from_numpy(image.transpose(2, 0, 1))
         image = image.unsqueeze(0).to(cfg.device)
         image_meta = {k: torch.from_numpy(v).unsqueeze(0).to(cfg.device) if isinstance(v, np.ndarray)
@@ -121,7 +124,12 @@ def demo(cfg):
 
         inp = {'image': image,
                'image_meta': image_meta}
+        # print(type(image.cpu().numpy()))
+        print(image.cpu().numpy()[0].shape)
+        # cv2_image = cv2.cvtColor(image.cpu().numpy(), cv2.COLOR_BGR2RGB)
         
+        # cv2.imwrite(os.path.join('/workspace/SqueezeDet-PyTorch_simple_bypass/exp/images_resized_befor_model_input/',image_meta['image_id'][0]),
+        #             image.cpu().numpy())
         results = detector.detect(inp)
         
         print(results)

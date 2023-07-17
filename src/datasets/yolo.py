@@ -178,6 +178,7 @@ class YOLO(BaseDataset):
         image = (image * 2) - 1
         image = torch.from_numpy(image.transpose(2, 0, 1))
         image_visualize = image
+        
         return image, image_visualize, image_meta, boxes, class_ids
 
         # return super().preprocess(image, image_meta, boxes, class_ids)
