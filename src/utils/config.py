@@ -21,6 +21,8 @@ class Config(object):
         
         self.parser.add_argument('--sub_data_dir', help='training/synth_180k')
         self.parser.add_argument('--oneimage', action='store_true', default=False,help='loads train_oneimage.txt or val_oneimage.txt')
+        self.parser.add_argument('--image_extension_jpg', action='store_true', 
+                                 default=False,help='Uses jpg image extension if the flag is true else uses default png')
 
         # model
         self.parser.add_argument('--arch', default='squeezedet',

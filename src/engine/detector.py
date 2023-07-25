@@ -46,7 +46,10 @@ class Detector(object):
             if self.cfg.debug == 2:
                 # image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else 'training/image_2', image_meta['image_id'] + '.png'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.png')
                 # image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else 'training/image_2', image_meta['image_id'] + '.jpg'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.jpg')
-                image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else self.cfg.sub_data_dir + "/image_2", image_meta['image_id'] + '.jpg'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.jpg')
+                if self.cfg.image_extension_jpg:
+                    image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else self.cfg.sub_data_dir + "/image_2", image_meta['image_id'] + '.jpg'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.jpg')
+                else:
+                    image_path = os.path.join(self.data_dir, 'images' if self.cfg.dataset=='lpr' else self.cfg.sub_data_dir + "/image_2", image_meta['image_id'] + '.png'  if self.cfg.dataset=='lpr' else image_meta['image_id'] +'.png')
                 image_visualize = load_image(image_path)
                 save_path = os.path.join(self.cfg.debug_dir, image_meta['image_id'] + '.png')
                 visualize_boxes(image_visualize, det['class_ids'], det['boxes'], det['scores'],

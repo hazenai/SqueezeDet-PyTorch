@@ -9,7 +9,6 @@ warnings.filterwarnings("ignore")
 cfg = Config().parse()
 init_env(cfg)
 
-
 if cfg.mode == 'train':
     from train import train  
     train(cfg)

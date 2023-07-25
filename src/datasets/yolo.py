@@ -85,9 +85,10 @@ class YOLO(BaseDataset):
 
     def load_image(self, index):
         image_id = self.sample_ids[index]
-        # image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.png')  #Add line for kitti 
-        # image_path = os.path.join(self.data_dir, 'training/image_2', image_id + '.jpg')
-        image_path = os.path.join(self.data_dir, self.cfg.sub_data_dir + '/image_2', image_id + '.jpg')
+        if self.cfg.image_extension_jpg:
+            image_path = os.path.join(self.data_dir, self.cfg.sub_data_dir + '/image_2', image_id + '.jpg')
+        else:
+            image_path = os.path.join(self.data_dir, self.cfg.sub_data_dir + '/image_2', image_id + '.png')
         image = default_loader(image_path)
         if image.mode == 'L':
             image = image.convert('RGB')

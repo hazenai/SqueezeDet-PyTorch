@@ -1,0 +1,74 @@
+pase is: train
+/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/train.txt
+pase is: val
+/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/val.txt
+anchors                        [[  8.   8.   6.   5.]
+ [  8.   8.  12.  10.]
+ [  8.   8.  18.  10.]
+ ...
+ [248. 248.  18.  18.]
+ [248. 248.  20.  24.]
+ [248. 248.  30.  15.]]
+anchors_per_grid               6
+arch                           squeezedet
+batch_size                     32
+bbox_loss_weight               32.0
+chunk_sizes                    [32]
+class_loss_weight              3.0
+class_names                    ['licenseplate']
+data_dir                       /workspace/SqueezeDet-PyTorch_simple_bypass/data
+dataset                        yolo
+debug                          2
+debug_dir                      /workspace/SqueezeDet-PyTorch_simple_bypass/exp/synth_180k_filter/debug
+device                         cuda
+drift_prob                     1.0
+dropout_prob                   0
+exp_dir                        /workspace/SqueezeDet-PyTorch_simple_bypass/exp
+exp_id                         synth_180k_filter
+flip_prob                      0.5
+forbid_resize                  False
+gpus                           [0]
+gpus_str                       0
+grad_norm                      1
+grid_size                      (16, 16)
+input_size                     (256, 256)
+keep_top_k                     64
+load_model                     /workspace/SqueezeDet-PyTorch_simple_bypass/models/squeezenet1_1-f364aa15.pth
+load_pretrained                True
+log_file                       /workspace/SqueezeDet-PyTorch_simple_bypass/exp/synth_180k_filter/training_logs.txt
+lr                             0.00016
+master_batch_size              32
+mode                           train
+momentum                       0.9
+negative_score_loss_weight     129.1
+nms_thresh                     0.4
+no_eval                        False
+not_cuda_benchmark             False
+num_anchors                    1536
+num_classes                    1
+num_epochs                     100000
+num_iters                      -1
+num_workers                    4
+oneimage                       False
+positive_score_loss_weight     64.5
+print_interval                 20
+qat                            False
+rgb_mean                       [[[0. 0. 0.]]]
+rgb_std                        [[[40. 40. 40.]]]
+root_dir                       /workspace/SqueezeDet-PyTorch_simple_bypass
+save_dir                       /workspace/SqueezeDet-PyTorch_simple_bypass/exp/synth_180k_filter
+save_intervals                 30
+score_thresh                   0.5
+seed                           42
+stride                         16
+sub_data_dir                   training/synth_180k
+val_intervals                  5
+weight_decay                   0.0001
+quantization is: False
+loaded model /workspace/SqueezeDet-PyTorch_simple_bypass/models/squeezenet1_1-f364aa15_converted.pth, epoch 0
+Drop param base.classifier.1.weight in pre-trained model.
+Drop param base.classifier.1.bias in pre-trained model.
+Param base.convdet.weight not found in pre-trained model.
+Param base.convdet.bias not found in pre-trained model.
+The model does not fully load the pre-trained weight.
+1104
