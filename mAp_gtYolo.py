@@ -1,19 +1,19 @@
 # THe routine is modified for gt in form of y1,x1,y2,x2
-import torch                                                                                                                                                                                                   
-from collections import Counter                                                                                                    
-import os                       
-                                               
-# Change below paths to compute mAP for different boxes according to your requirements                                                                             
-base_path = '/workspace/SqueezeDet-PyTorch_simple_bypass'                                          
-# gt_boxes_idx_path = os.path.join(base_path, 'filteredImages_size>=200_or.txt')                                              
+import torch
+from collections import Counter
+import os
+from tqdm import tqdm
+# Change below paths to compute mAP for different boxes according to your requirements
+base_path = '/workspace/SqueezeDet-PyTorch_simple_bypass'
+# gt_boxes_idx_path = os.path.join(base_path, 'filteredImages_size>=200_or.txt')
 gt_boxes_path = os.path.join(base_path, 'data/kitti/training/synth_4.10/label_2')
-pred_boxes_path = os.path.join(base_path, 'exp/Training_0.31_Synth_4.10_125k_split_90-10/results/data')  
-gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/Training_0.31_Synth_4.10_125k_split_90-10/results/data'))
+pred_boxes_path = os.path.join(base_path, 'exp/evaluate_trainData_model_0.31_Data_4.10/results/data')
+gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/evaluate_trainData_model_0.31_Data_4.10/results/data'))
 gtImageIdsPath = [imgId[:-4] for imgId in gtImageIdsPath]
 
-num_classes = ('licenseplate','car')                                                                                                       
-iou_threshold = 0.75
-average_precisions = []                                                                                                     
+num_classes = ('licenseplate','car')
+iou_threshold = 0.8
+average_precisions = []
 epsilon = 1e-6
 
 # with open(gt_boxes_idx_path, 'r') as fp:
@@ -24,8 +24,7 @@ names = gtImageIdsPath.copy()
 
 def iou_calc(pred_bbox, gt_bbox):                                                                                                                                          
     pred_x1, pred_y1, pred_x2, pred_y2 = pred_bbox                                                     
-    gt_x1, gt_y1, gt_x2, gt_y2 = gt_bbox                                                          
-                                                                                                                                                              
+    gt_x1, gt_y1, gt_x2, gt_y2 = gt_bbox                                                                                                                                                                                                                        
     x1 = max(pred_x1, gt_x1)                                                                                                                                 
     y1 = max(pred_y1, gt_y1)                                                                            
     x2 = min(pred_x2, gt_x2)                                                                             
@@ -68,7 +67,8 @@ for name in names:
 # prediction is in the form of standard kitti:
 # className -1 -1 bbox[0] bbox[1] bbox[2] bbox[3] 0 0 0 0 0 0 0 <accuracy>
 listOfNotDetectedImages = []
-for name in os.listdir(pred_boxes_path):                                                                                                                                                    
+listdir_pred_boxes_path = os.listdir(pred_boxes_path)
+for name in tqdm(listdir_pred_boxes_path):                                                                                                                                                    
     if name.endswith('.txt'):                                                                                         
         with open(os.path.join(pred_boxes_path,name), 'r') as fp:                                                                
             annotations = fp.readlines()                                                                              
@@ -104,7 +104,7 @@ for c in num_classes:
     FP = torch.zeros((len(detections)))                                                                                        
     total_true_bboxes = len(ground_truths)                                                                                                      
                                                                                                                                      
-    for detection_idx, detection in enumerate(detections):                                                                              
+    for detection_idx, detection in tqdm(enumerate(detections)):                                                                              
         ground_truth_img = [ bbox for bbox in ground_truths if bbox[0]==detection[0] ]                                                                                                                                 
                                                                                                
         num_gts = len(ground_truth_img)                                                                                       
