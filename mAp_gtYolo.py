@@ -6,13 +6,13 @@ import os
 # Change below paths to compute mAP for different boxes according to your requirements                                                                             
 base_path = '/workspace/SqueezeDet-PyTorch_simple_bypass'                                          
 # gt_boxes_idx_path = os.path.join(base_path, 'filteredImages_size>=200_or.txt')                                              
-gt_boxes_path = os.path.join(base_path, 'data/kitti/training/synth_2.0/label_2')                                            
-pred_boxes_path = os.path.join(base_path, 'exp/eval_synth_2.0_on_Train_Data_at_1050_epoch/results/data')  
-gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/eval_synth_2.0_on_Train_Data_at_1050_epoch/results/data'))
+gt_boxes_path = os.path.join(base_path, 'data/kitti/training/synth_4.10/label_2')
+pred_boxes_path = os.path.join(base_path, 'exp/Training_0.31_Synth_4.10_125k_split_90-10/results/data')  
+gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/Training_0.31_Synth_4.10_125k_split_90-10/results/data'))
 gtImageIdsPath = [imgId[:-4] for imgId in gtImageIdsPath]
 
 num_classes = ('licenseplate','car')                                                                                                       
-iou_threshold = 0.8
+iou_threshold = 0.75
 average_precisions = []                                                                                                     
 epsilon = 1e-6
 
@@ -67,17 +67,22 @@ for name in names:
 
 # prediction is in the form of standard kitti:
 # className -1 -1 bbox[0] bbox[1] bbox[2] bbox[3] 0 0 0 0 0 0 0 <accuracy>
+listOfNotDetectedImages = []
 for name in os.listdir(pred_boxes_path):                                                                                                                                                    
     if name.endswith('.txt'):                                                                                         
         with open(os.path.join(pred_boxes_path,name), 'r') as fp:                                                                
             annotations = fp.readlines()                                                                              
-    annotations = [ann.strip().split(' ') for ann in annotations]                                                     
+    annotations = [ann.strip().split(' ') for ann in annotations]
+    if len(annotations) == 0:
+        listOfNotDetectedImages.append(name[:-4])
+
     for ann in annotations:                                                
         box = [float(x) for x in ann[4:8]]                                                                  
         pred_boxes.append([name.split('.')[0], ann[0].lower(), float(ann[-1]), box[0], box[1], box[2], box[3]])                                                                                             
 
 print("Total Ground Truth Images File IDs: ", len(names))
-print("Total Prediction File IDs: ", len(pred_boxes))
+print("Total Prediction File IDs: ", len(set([pd[0] for pd in pred_boxes])))
+print("Total File IDs with no detection: ", len(listOfNotDetectedImages))
 
 for c in num_classes:                                                                                                                                           
     detections, ground_truths = [], []                                                                              

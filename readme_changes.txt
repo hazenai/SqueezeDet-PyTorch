@@ -9,6 +9,14 @@ Use following flags:
 Train Validation Split:
 - The file ids are fetched from image_2 or label_2 and stored in trainval.txt
 - The routine is called random_split_train_val.py which will create train.txt and val.txt with default 90/10 split. can be modified in the file
+- Method:
+	1. Navigate into image_sets
+	2. RUN: ls ../training/<NAME DATASET>/image_2/ | grep "<IMAGE FORMAT>" | sed s/<IMAGE FORMAT>// > trainval_<NAME DATASET>.txt
+		help: "IMAGE FORMAT: '.png' or '.jpg'"
+	3. Copy contents of trainval_<NAME DATASET>.txt to trainval.txt
+	4. Navigate to src/utils/
+	5. RUN: python random_split_train_val.py
+	6. Save train.txt and val.txt into another folder in image_sets named against dataset and its version of split
 
 Random Exec Commands:
 python main.py --exp_id="eval_synth_2.0_on_Train_Data_at_1050_epoch" --sub_data_dir="training/synth_2.0" --load_model="/workspace/SqueezeDet-PyTorch_simple_bypass/exp/train_synth_2.0/model_1050.pth" --image_extension_jpg --mode=eval --oneimage
