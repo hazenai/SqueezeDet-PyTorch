@@ -3,12 +3,20 @@ import torch
 from collections import Counter
 import os
 from tqdm import tqdm
+
+gtFromatYX = False
+print('-'*20)
+if gtFromatYX:
+    print("Ground Truths are in format y1x1y2x2")
+else:
+    print("Ground Truths are in format x1y1x2y2")
+print('-'*20)
+
 # Change below paths to compute mAP for different boxes according to your requirements
 base_path = '/workspace/SqueezeDet-PyTorch_simple_bypass'
-# gt_boxes_idx_path = os.path.join(base_path, 'filteredImages_size>=200_or.txt')
-gt_boxes_path = os.path.join(base_path, 'data/kitti/training/synth_4.10/label_2')
-pred_boxes_path = os.path.join(base_path, 'exp/evaluate_trainData_model_0.31_Data_4.10/results/data')
-gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/evaluate_trainData_model_0.31_Data_4.10/results/data'))
+gt_boxes_path = os.path.join(base_path, 'data/kitti/training/realLpData_1.0/label_2')
+pred_boxes_path = os.path.join(base_path, 'exp/TestData_0.1_modelTrainId_0.31_On_TrainData_synth_4.10/results/data')
+gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/TestData_0.1_modelTrainId_0.31_On_TrainData_synth_4.10/results/data'))
 gtImageIdsPath = [imgId[:-4] for imgId in gtImageIdsPath]
 
 num_classes = ('licenseplate','car')
@@ -16,10 +24,6 @@ iou_threshold = 0.8
 average_precisions = []
 epsilon = 1e-6
 
-# with open(gt_boxes_idx_path, 'r') as fp:
-#     names = fp.readlines()
-
-# names = [name.strip() for name in names]
 names = gtImageIdsPath.copy()
 
 def iou_calc(pred_bbox, gt_bbox):                                                                                                                                          
@@ -114,8 +118,9 @@ for c in num_classes:
                                                                                                             
             # iou = iou_calc(torch.tensor(detection[3:]), torch.tensor(gt[2:]))
             # modified according to given gt_labels in the form of y1,x1,y2,x2 and converting them to x1,y1,x2,y2 
-            bboxGt = gt[2:]
-            bboxGt = [bboxGt[1], bboxGt[0], bboxGt[3], bboxGt[2]]
+            bboxGt = gt[2:].copy()
+            if gtFromatYX:
+                bboxGt = [bboxGt[1], bboxGt[0], bboxGt[3], bboxGt[2]]
             iou = iou_calc(torch.tensor(detection[3:]), torch.tensor(bboxGt[:]))
             
             if iou>best_iou:                                                               
