@@ -22,6 +22,7 @@ class YOLO(BaseDataset):
         super(YOLO, self).__init__(phase, cfg)
 
         # self.input_size = (256, 448)  # (height, width), both dividable by 16
+        # can changed after training as well
         self.input_size = (256, 256)  # (height, width), changed above with this one for alpr det
         self.class_names = ['licenseplate']     # used for LPD                                                                          
         # self.class_names = ('cyclist', 'car', 'pedestrian')     # used for kitti                                                           
@@ -57,6 +58,8 @@ class YOLO(BaseDataset):
         #     dtype=np.float32,
         # )  # ALPR Detector Anchor boxes
         
+        # once trained cannot be change
+        # make size equivalent to the input size
         self.anchors_seed = np.array(
             [
                 [  54,   32],
@@ -70,7 +73,7 @@ class YOLO(BaseDataset):
                 [1714,  545]
             ],
             dtype=np.float32,
-        )  # Synthetic Data 4.210
+        )
 
         self.anchors = generate_anchors(self.grid_size, self.input_size, self.anchors_seed)
         self.anchors_per_grid = self.anchors_seed.shape[0]
@@ -108,7 +111,7 @@ class YOLO(BaseDataset):
         image = default_loader(image_path)
         if image.mode == 'L':
             image = image.convert('RGB')
-        image = np.array(image).astype(np.float32)
+        image = np.asarray(image).astype(np.float32)
         # image = skimage.io.imread(image_path).astype(np.float32)
         return image, image_id
 
@@ -133,6 +136,7 @@ class YOLO(BaseDataset):
             #     box[3] = 0.00001
             boxes.append(box)
 
+        #TODO: remove np.array conversion
         class_ids = np.array(class_ids, dtype=np.int16)
         boxes = np.array(boxes, dtype=np.float32)
         if len(boxes):

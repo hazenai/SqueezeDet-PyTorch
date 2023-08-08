@@ -49,7 +49,7 @@ class Config(object):
                                  help='total training epochs.')
         self.parser.add_argument('--num_iters', type=int, default=-1,
                                  help='default: #samples / batch_size.')
-        self.parser.add_argument('--batch_size', type=int, default=32,   #default=140,      
+        self.parser.add_argument('--batch_size', type=int, default=256,   #default=140,      
                                  help='batch size')
         self.parser.add_argument('--master_batch_size', type=int, default=-1,
                                  help='batch size on the master gpu.')
@@ -88,7 +88,7 @@ class Config(object):
         # system
         self.parser.add_argument('--gpus', default='0',
                                  help='-1 for CPU, use comma for multiple gpus')
-        self.parser.add_argument('--num_workers', type=int, default=4,            #default=4,            
+        self.parser.add_argument('--num_workers', type=int, default=16,            #default=4,            
                                  help='dataloader threads. 0 for single-thread.')
         self.parser.add_argument('--not_cuda_benchmark', action='store_true',
                                  help='disable when the input size is not fixed.')

@@ -51,12 +51,18 @@ def train(cfg):
                                                num_workers=cfg.num_workers,
                                                pin_memory=True,
                                                shuffle=True,
-                                               drop_last=False)
+                                               drop_last=False,
+                                                persistent_workers=True,
+                                                prefetch_factor=4)
 
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=cfg.batch_size,
                                              num_workers=cfg.num_workers,
-                                             pin_memory=True)
+                                             pin_memory=True,
+                                             persistent_workers=True,
+                                                prefetch_factor=4)
+
+    model.to(device=cfg.device)
 
     metrics = trainer.metrics if cfg.no_eval else trainer.metrics + ['mAP']
     best = 1E9 if cfg.no_eval else 0

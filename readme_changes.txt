@@ -20,3 +20,9 @@ Train Validation Split:
 
 Random Exec Commands:
 python main.py --exp_id="eval_synth_2.0_on_Train_Data_at_1050_epoch" --sub_data_dir="training/synth_2.0" --load_model="/workspace/SqueezeDet-PyTorch_simple_bypass/exp/train_synth_2.0/model_1050.pth" --image_extension_jpg --mode=eval --oneimage
+
+How to writ exp_id: 
+	--exp_id="<mode>_<id>_<datasetName>_<size>_<debug_train/val/test>_split<>"
+	
+
+python main.py --mode=train --sub_data_dir="training/synth_4.210" --image_extension_jpg --num_workers=140 --exp_id="Training_0.4_synth_4.210_240k_debug_val_split_90-10"
