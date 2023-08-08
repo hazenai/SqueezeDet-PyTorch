@@ -111,7 +111,7 @@ class YOLO(BaseDataset):
         image = default_loader(image_path)
         if image.mode == 'L':
             image = image.convert('RGB')
-        image = np.asarray(image).astype(np.float32)
+        image = np.array(image).astype(np.float32)
         # image = skimage.io.imread(image_path).astype(np.float32)
         return image, image_id
 
