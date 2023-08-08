@@ -52,10 +52,26 @@ class YOLO(BaseDataset):
         #                                 [103, 66], [122, 114], [183, 96],                        # Anchors used for kitti training           
         #                                 [160, 152], [211, 201], [343, 205]], dtype=np.float32) ## real_filtered plus all_sites_seatbelt anchors
 
+        # self.anchors_seed = np.array(
+        #     [[6, 5], [12, 10], [18, 10], [18, 18], [20, 24], [30, 15]],
+        #     dtype=np.float32,
+        # )  # ALPR Detector Anchor boxes
+        
         self.anchors_seed = np.array(
-            [[6, 5], [12, 10], [18, 10], [18, 18], [20, 24], [30, 15]],
+            [
+                [  54,   32],
+                [  90,   39],
+                [ 129,   39],
+                [ 135,   70],
+                [ 200,   86],
+                [ 300,  109],
+                [ 489,  168],
+                [ 862,  288],
+                [1714,  545]
+            ],
             dtype=np.float32,
-        )  # ALPR Detector Anchor boxes
+        )  # Synthetic Data 4.210
+
         self.anchors = generate_anchors(self.grid_size, self.input_size, self.anchors_seed)
         self.anchors_per_grid = self.anchors_seed.shape[0]
         self.num_anchors = self.anchors.shape[0]
