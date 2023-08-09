@@ -26,3 +26,6 @@ How to writ exp_id:
 	
 
 python main.py --mode=train --sub_data_dir="training/synth_4.210" --image_extension_jpg --num_workers=140 --exp_id="Training_0.4_synth_4.210_240k_debug_val_split_90-10"
+
+presonal pc:
+python main.py --mode=eval --load_model="/workspace/SqueezeDet-PyTorch_simple_bypass/models/model_Best_synth_4.210_id_0.4.pth" --exp_id="TestData_modelTrainID_0.4_epoch100_synth_4.210" --sub_data_dir="training/realLpData_1.0" --oneimage

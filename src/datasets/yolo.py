@@ -58,6 +58,7 @@ class YOLO(BaseDataset):
         #     dtype=np.float32,
         # )  # ALPR Detector Anchor boxes
         
+        
         # once trained cannot be change
         # make size equivalent to the input size
         self.anchors_seed = np.array(

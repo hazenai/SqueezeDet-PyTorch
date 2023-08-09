@@ -49,7 +49,7 @@ class Config(object):
                                  help='total training epochs.')
         self.parser.add_argument('--num_iters', type=int, default=-1,
                                  help='default: #samples / batch_size.')
-        self.parser.add_argument('--batch_size', type=int, default=256,   #default=140,      
+        self.parser.add_argument('--batch_size', type=int, default=32,   #default=140,      
                                  help='batch size')
         self.parser.add_argument('--master_batch_size', type=int, default=-1,
                                  help='batch size on the master gpu.')
