@@ -4,7 +4,7 @@ from collections import Counter
 import os
 from tqdm import tqdm
 
-gtFromatYX = False
+gtFromatYX = True
 print('-'*20)
 if gtFromatYX:
     print("Ground Truths are in format y1x1y2x2")
