@@ -147,28 +147,36 @@ class DataWrapper(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         image, image_id = self.dataset.load_image(index)
+        gt_class_ids, gt_boxes = self.dataset.load_annotations_comma_and_Space_format(index)
         image_meta = {'index': index,
                       'image_id': image_id,
                       'orig_size': np.array(image.shape, dtype=np.int32)}
 
-        # image, _, image_meta, gt_boxes, gt_class_ids = self.dataset.preprocess(image, image_meta)
-        # image = torch.from_numpy(image.transpose(2, 0, 1)).to(torch.device('cpu'))
-        
-        # whiten the image
-        image, image_meta = whiten(image, image_meta, self.dataset.rgb_mean, self.dataset.rgb_std)
-        # resize the image
-        image, image_meta, boxes = resize(image, image_meta, self.dataset.input_size, boxes=None)
-        image = (image * 2) - 1
-        image = torch.from_numpy(image.transpose(2, 0, 1)).to(torch.device('cpu'))
-        # image = image.unsqueeze(0).to('cpu')
-        # image_meta = {k: torch.from_numpy(v).unsqueeze(0).to('cpu') if isinstance(v, np.ndarray)
-        #               else [v] for k, v in image_meta.items()}
-        # image_meta = {k: torch.from_numpy(v).to('cpu') if isinstance(v, np.ndarray)
-        #               else [v] for k, v in image_meta.items()}
-        
-        
+        image, image_visualize, image_meta, gt_boxes, gt_class_ids = self.dataset.preprocess(image, image_meta, gt_boxes, gt_class_ids)
+        # gt = self.dataset.prepare_annotations(gt_class_ids, gt_boxes)
         batch = {'image': image,
-                 'image_meta': image_meta}
+               'image_meta': image_meta}
+        # import cv2
+        # cv2.imwrite("./temp.jpg", np.asarray(image))
+        # # image, _, image_meta, gt_boxes, gt_class_ids = self.dataset.preprocess(image, image_meta)
+        # # image = torch.from_numpy(image.transpose(2, 0, 1)).to(torch.device('cpu'))
+        
+        # # whiten the image
+
+        # image, image_meta = whiten(image, image_meta, self.dataset.rgb_mean, self.dataset.rgb_std)
+        # # resize the image
+        # image, image_meta, boxes = resize(image, image_meta, self.dataset.input_size, boxes=None)
+        # image = (image * 2) - 1
+        # image = torch.from_numpy(image.transpose(2, 0, 1)).to(torch.device('cpu'))
+        # # image = image.unsqueeze(0).to('cpu')
+        # # image_meta = {k: torch.from_numpy(v).unsqueeze(0).to('cpu') if isinstance(v, np.ndarray)
+        # #               else [v] for k, v in image_meta.items()}
+        # # image_meta = {k: torch.from_numpy(v).to('cpu') if isinstance(v, np.ndarray)
+        # #               else [v] for k, v in image_meta.items()}
+        
+        
+        # batch = {'image': image,
+        #          'image_meta': image_meta}
         return batch
 
     def __len__(self):

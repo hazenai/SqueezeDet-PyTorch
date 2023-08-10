@@ -14,8 +14,7 @@ from utils.image import whiten, drift, flip, resize, crop_or_pad
 from utils.boxes import compute_deltas, visualize_boxes
 import torch
 
-
-
+from imgaug.augmentables.bbs import BoundingBox, BoundingBoxesOnImage
 
 class YOLO(BaseDataset):
     def __init__(self, phase, cfg):
@@ -57,6 +56,7 @@ class YOLO(BaseDataset):
         #     [[6, 5], [12, 10], [18, 10], [18, 18], [20, 24], [30, 15]],
         #     dtype=np.float32,
         # )  # ALPR Detector Anchor boxes
+        
         
         # once trained cannot be change
         # make size equivalent to the input size
@@ -192,8 +192,34 @@ class YOLO(BaseDataset):
     # ========================================
     #                preprocess yolo
     # ========================================
+    
+    def applyImageAugmentations(self, image, boxes, imageMeta):
+        bbs = BoundingBoxesOnImage(
+            [BoundingBox(x1=bx[1], y1=bx[0], x2=bx[3], y2=bx[2]) for bx in boxes], 
+            shape=image.shape)
+        import cv2
+        
+        img_aug, bbs_aug = self.seq(image=image.copy().astype(np.uint8), bounding_boxes=bbs.copy())
+        bbs_aug = bbs_aug.remove_out_of_image(fully=True).clip_out_of_image()
+
+        if len(bbs_aug.bounding_boxes)==0 or not bbs_aug.bounding_boxes[0].is_fully_within_image(img_aug):
+            # print("Dropped image aug for: ", imageMeta['image_id'])
+            return image, boxes
+
+        augmentedBoxes = np.asarray([[bx.x1, bx.y1, bx.x2, bx.y2] for bx in bbs_aug.bounding_boxes])
+
+        image_before = bbs.draw_on_image(image, size=2)
+        image_after = bbs_aug.draw_on_image(img_aug, size=2, color=[0, 0, 255])
+        # cv2.imwrite(os.path.join('/workspace/augRes/before_aug', imageMeta['image_id'] + '.jpg'), image_before)
+        # cv2.imwrite(os.path.join('/workspace/augRes/after_aug', imageMeta['image_id'] + '.jpg'), image_after)
+
+
+        return img_aug, augmentedBoxes
+    
     def preprocess(self, image, image_meta, boxes=None, class_ids=None):
         # print('Preprocess from child of baseDataset: yolo is called')
+        if self.phase == 'train' or self.phase == 'val':
+            image,boxes = self.applyImageAugmentations(image, boxes, image_meta)
         image, image_meta = whiten(image, image_meta, self.rgb_mean, self.rgb_std)
         # resize the image
         image, image_meta, boxes = resize(image, image_meta, self.input_size, boxes=boxes)
@@ -233,7 +259,7 @@ class YOLO(BaseDataset):
     def evaluate(self):
         kitti_eval_tool_path = os.path.join(self.cfg.root_dir, 'src/utils/kitti-eval/cpp/evaluate_object')
         cmd = '{} {} {} {} {}'.format(kitti_eval_tool_path,
-                                      os.path.join(self.data_dir, 'training'),
+                                      os.path.join(self.data_dir, self.cfg.sub_data_dir),
                                       self.sample_set_path,
                                       self.results_dir,
                                       len(self.sample_ids))

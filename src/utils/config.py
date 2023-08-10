@@ -7,19 +7,19 @@ class Config(object):
         self.parser = argparse.ArgumentParser()
 
         # basic experiment setting
-        self.parser.add_argument('--mode', default='train',
+        self.parser.add_argument('--mode', default='eval',
                                  help='train | eval | demo')
         self.parser.add_argument('--dataset', default='yolo',
                                  help='coco | kitti | yolo | lpr' )
-        self.parser.add_argument('--load_model', default='/workspace/SqueezeDet-PyTorch_simple_bypass/models/squeezenet1_1-f364aa15.pth',                      
+        self.parser.add_argument('--load_model', default='/workspace/SqueezeDet-PyTorch_simple_bypass/models/model_Best_synth_4.210_id_0.4.pth',                      
                                  help='path to pre-trained model')
         self.parser.add_argument('--debug', type=int, default=2,
                                  help='0: show nothing\n'
                                       '1: visualize pre-processed image and boxes\n'
                                       '2: visualize detections.')
-        self.parser.add_argument('--exp_id', default='temp_default_train')
+        self.parser.add_argument('--exp_id', default='temp_default')
         
-        self.parser.add_argument('--sub_data_dir', help='training/synth_180k')
+        self.parser.add_argument('--sub_data_dir', default='training/realLpData_1.0',help='training/realLpData_1.0')
         self.parser.add_argument('--oneimage', action='store_true', default=False,help='loads train_oneimage.txt or val_oneimage.txt')
         self.parser.add_argument('--image_extension_jpg', action='store_true', 
                                  default=False,help='Uses jpg image extension if the flag is true else uses default png')
@@ -49,7 +49,7 @@ class Config(object):
                                  help='total training epochs.')
         self.parser.add_argument('--num_iters', type=int, default=-1,
                                  help='default: #samples / batch_size.')
-        self.parser.add_argument('--batch_size', type=int, default=256,   #default=140,      
+        self.parser.add_argument('--batch_size', type=int, default=32,   #default=140,      
                                  help='batch size')
         self.parser.add_argument('--master_batch_size', type=int, default=-1,
                                  help='batch size on the master gpu.')

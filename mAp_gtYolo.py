@@ -14,9 +14,9 @@ print('-'*20)
 
 # Change below paths to compute mAP for different boxes according to your requirements
 base_path = '/workspace/SqueezeDet-PyTorch_simple_bypass'
-gt_boxes_path = os.path.join(base_path, 'data/kitti/training/synth_4.210/label_2')
-pred_boxes_path = os.path.join(base_path, 'exp/Training_0.4_synth_4.210_240k_debug_val_split_90-10/results/data')
-gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/Training_0.4_synth_4.210_240k_debug_val_split_90-10/results/data'))
+gt_boxes_path = os.path.join(base_path, 'data/kitti/training/realLpData_1.0/label_2')
+pred_boxes_path = os.path.join(base_path, 'exp/TestData_modelTrainID_0.4_epoch100_synth_4.210/results/data')
+gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/TestData_modelTrainID_0.4_epoch100_synth_4.210/results/data'))
 gtImageIdsPath = [imgId[:-4] for imgId in gtImageIdsPath]
 
 num_classes = ('licenseplate','car')
