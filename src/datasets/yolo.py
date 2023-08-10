@@ -218,7 +218,7 @@ class YOLO(BaseDataset):
     
     def preprocess(self, image, image_meta, boxes=None, class_ids=None):
         # print('Preprocess from child of baseDataset: yolo is called')
-        if self.phase == 'train' or self.phase == 'val':
+        if self.cfg.image_augmentations:
             image,boxes = self.applyImageAugmentations(image, boxes, image_meta)
         image, image_meta = whiten(image, image_meta, self.rgb_mean, self.rgb_std)
         # resize the image
