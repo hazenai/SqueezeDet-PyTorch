@@ -23,7 +23,8 @@ class Config(object):
         self.parser.add_argument('--oneimage', action='store_true', default=False,help='loads train_oneimage.txt or val_oneimage.txt')
         self.parser.add_argument('--image_extension_jpg', action='store_true', 
                                  default=False,help='Uses jpg image extension if the flag is true else uses default png')
-
+        self.parser.add_argument('--image_augmentations', action='store_true', default=False, help='performs image augmentations')
+        
         # model
         self.parser.add_argument('--arch', default='squeezedet',
                                  help='model architecture: squeezedet | squeezedetplus')
