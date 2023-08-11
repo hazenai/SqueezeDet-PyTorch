@@ -26,25 +26,38 @@ string ospj( string const & a, string const & b, string const & c ) { return a +
 enum DIFFICULTY{EASY=0, MODERATE=1, HARD=2};
 
 // evaluation parameter
-const int32_t MIN_HEIGHT[3]     = {40, 25, 25};     // minimum height for evaluated groundtruth/detections
-const int32_t MAX_OCCLUSION[3]  = {0, 1, 2};        // maximum occlusion level of the groundtruth used for evaluation
-const double  MAX_TRUNCATION[3] = {0.15, 0.3, 0.5}; // maximum truncation level of the groundtruth used for evaluation
+// const int32_t MIN_HEIGHT[3]     = {40, 25, 25};     // minimum height for evaluated groundtruth/detections
+// const int32_t MIN_HEIGHT[1]     = {0};     // minimum height for evaluated groundtruth/detections
+// const int32_t MAX_OCCLUSION[3]  = {0, 1, 2};        // maximum occlusion level of the groundtruth used for evaluation
+// const double  MAX_TRUNCATION[3] = {0.15, 0.3, 0.5}; // maximum truncation level of the groundtruth used for evaluation
+
+// As occulsion and truncation is not available in ground truth hence setting all the following values to 10000
+// condition for ignoring the ground truth is if the ground trund occulsion/truncation > max occulsion/truncation
+const int32_t MAX_OCCLUSION[3]  = {100000, 100000, 100000};        // maximum occlusion level of the groundtruth used for evaluation
+const double  MAX_TRUNCATION[3] = {100000, 100000, 100000}; // maximum truncation level of the groundtruth used for evaluation
+// condition for ignoring the ground truth is if the ground truth height < min height
+const int32_t MIN_HEIGHT[3]     = {0, 0, 0};     // minimum height for evaluated groundtruth/detections
+
 
 // evaluated object classes
-enum CLASSES{BIKE=0, CAR=1, BUS=2};
+// enum CLASSES{BIKE=0, CAR=1, BUS=2};
+enum CLASSES{LICENSEPLATE=0};
 
 // parameters varying per class
 vector<string> CLASS_NAMES;
-const double   MIN_OVERLAP[3] = {0.5, 0.5, 0.5};                  // the minimum overlap required for evaluation
+const double   MIN_OVERLAP[1] = {0.80};                  // the minimum overlap required for evaluation
 
 // no. of recall steps that should be evaluated (discretized)
 const double N_SAMPLE_PTS = 41;
 
 // initialize class names
+// void initGlobals () {
+//   CLASS_NAMES.push_back("bike");
+//   CLASS_NAMES.push_back("car");
+//   CLASS_NAMES.push_back("bus");
+// }
 void initGlobals () {
-  CLASS_NAMES.push_back("bike");
-  CLASS_NAMES.push_back("car");
-  CLASS_NAMES.push_back("bus");
+  CLASS_NAMES.push_back("licenseplate");
 }
 
 /*=======================================================================
@@ -103,7 +116,7 @@ struct tDetection {
 FUNCTIONS TO LOAD DETECTION AND GROUND TRUTH DATA ONCE, SAVE RESULTS
 =======================================================================*/
 
-vector<tDetection> loadDetections(string file_name, bool &compute_aos, bool &eval_bike, bool &eval_car, bool &eval_bus, bool &success) {
+vector<tDetection> loadDetections(string file_name, bool &compute_aos, bool &eval_licensePlate, bool &success) {
 
   // holds all detections (ignored detections are indicated by an index vector
   vector<tDetection> detections;
@@ -129,12 +142,15 @@ vector<tDetection> loadDetections(string file_name, bool &compute_aos, bool &eva
         compute_aos = false;
 
       // a class is only evaluated if it is detected at least once
-      if(!eval_bike && !strcasecmp(d.box.type.c_str(), "bike"))
-        eval_bike = true;
-      if(!eval_car && !strcasecmp(d.box.type.c_str(), "car"))
-        eval_car = true;
-      if(!eval_bus && !strcasecmp(d.box.type.c_str(), "bus"))
-        eval_bus = true;
+      if(!eval_licensePlate && !strcasecmp(d.box.type.c_str(), "licenseplate"))
+        eval_licensePlate = true;
+      
+      // if(!eval_bike && !strcasecmp(d.box.type.c_str(), "bike"))
+      //   eval_bike = true;
+      // if(!eval_car && !strcasecmp(d.box.type.c_str(), "car"))
+      //   eval_car = true;
+      // if(!eval_bus && !strcasecmp(d.box.type.c_str(), "bus"))
+      //   eval_bus = true;
     }
   }
   fclose(fp);
@@ -155,12 +171,18 @@ vector<tGroundtruth> loadGroundtruth(string file_name,bool &success) {
     tGroundtruth g;
     double trash;
     char str[255];
-    if (fscanf(fp, "%s %lf %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
-                   str, &g.truncation, &g.occlusion, &g.box.alpha,
-                   &g.box.x1,   &g.box.y1,     &g.box.x2,    &g.box.y2,
-                   &trash,      &trash,        &trash,       &trash,
-                   &trash,      &trash,        &trash )==15) {
-      g.box.type = str;
+    // if (fscanf(fp, "%s %lf %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+    //                str, &g.truncation, &g.occlusion, &g.box.alpha,
+    //                &g.box.x1,   &g.box.y1,     &g.box.x2,    &g.box.y2,
+    //                &trash,      &trash,        &trash,       &trash,
+    //                &trash,      &trash,        &trash )==15) {
+    //   g.box.type = str;
+    //   groundtruth.push_back(g);
+    // }
+    if (fscanf(fp, "%lf,%lf,%lf,%lf",
+                   &g.box.x1,   &g.box.y1,     &g.box.x2,    &g.box.y2
+                  )==4) {
+      g.box.type = "licenseplate";
       groundtruth.push_back(g);
     }
   }
@@ -623,9 +645,9 @@ void saveAndPlotPlots(string dir_name,string file_name,string obj_type,vector<do
 
     // plot error curve
     fprintf(fp,"plot ");
-    fprintf(fp,"\"%s.txt\" using 1:2 title 'Easy' with lines ls 1 lw %d,",file_name.c_str(),lw);
-    fprintf(fp,"\"%s.txt\" using 1:3 title 'Moderate' with lines ls 2 lw %d,",file_name.c_str(),lw);
-    fprintf(fp,"\"%s.txt\" using 1:4 title 'Hard' with lines ls 3 lw %d",file_name.c_str(),lw);
+    fprintf(fp,"\"%s.txt\" using 1:2 title 'Easy' with lines ls 1 lw %d,", file_name.c_str(),lw);
+    fprintf(fp,"\"%s.txt\" using 1:3 title 'Moderate' with lines ls 2 lw %d,", file_name.c_str(),lw);
+    fprintf(fp,"\"%s.txt\" using 1:4 title 'Hard' with lines ls 3 lw %d", file_name.c_str(),lw);
 
     // close file
     fclose(fp);
@@ -650,8 +672,8 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
   initGlobals();
 
   // ground truth and result directories
-//  string result_dir     = "results/" + result_sha;
-  string plot_dir       = result_dir + "/plot";
+  //  string result_dir     = "results/" + result_sha;
+  string plot_dir = result_dir + "/plot";
 
   // create output directories
   system(("mkdir " + plot_dir).c_str());
@@ -662,10 +684,11 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
 
   // holds wether orientation similarity shall be computed (might be set to false while loading detections)
   // and which labels where provided by this submission
-  bool compute_aos=true, eval_bike=false, eval_car=false, eval_bus=false;
+  // bool compute_aos=true, eval_bike=false, eval_car=false, eval_bus=false;
+  bool compute_aos=true, eval_licensePlate=false;
 
   // get image names
-  FILE *fp = fopen( image_set_filename.c_str(),"r" );
+  FILE *fp = fopen(image_set_filename.c_str(),"r" );
   if (!fp) {
     mail->msg("ERROR: Couldn't read: image set file %s!", image_set_filename.c_str() );
     return false;
@@ -690,11 +713,26 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
     // file name
     char file_name[256];
     sprintf(file_name,"%s.txt", image_set[i].c_str());
+    
 
     // read ground truth and result poses
     bool gt_success,det_success;
     vector<tGroundtruth> gt   = loadGroundtruth(ospj(gt_dir,file_name),gt_success);
-    vector<tDetection>   det  = loadDetections(ospj(result_dir,"data",file_name), compute_aos, eval_bike, eval_car, eval_bus,det_success);
+    vector<tDetection>   det  = loadDetections(ospj(result_dir,"data",file_name), compute_aos, eval_licensePlate, det_success);
+
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    string temp_file_name;
+    temp_file_name = ospj(result_dir,"data",file_name);
+    FILE *fppp = fopen(temp_file_name.c_str(),"r");
+    if (!fppp) {
+      mail->msg("File not available ________________________ ");
+      mail->msg(("File: " + temp_file_name).c_str());
+      mail->msg("___________________________________________ ");
+      
+    }
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
     groundtruth.push_back(gt);
     detections.push_back(det);
 
@@ -704,7 +742,9 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
       return false;
     }
     if (!det_success) {
-      mail->msg("ERROR: Couldn't read: %s", file_name);
+      mail->msg("ERROR: Couldn't read det file: %s", file_name);
+      mail->msg(("result dir " + result_dir + ", On iteration: " + str(i)).c_str());
+  
       return false;
     }
   }
@@ -713,69 +753,26 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
   // holds pointers for result files
   FILE *fp_det=0, *fp_ap=0, *fp_ori=0;
 
-  // eval bike
-  if(eval_bike){
-    fp_det = fopen((result_dir + "/stats_" + CLASS_NAMES[BIKE] + "_detection.txt").c_str(),"w");
-    fp_ap = fopen((result_dir + "/stats_" + CLASS_NAMES[BIKE] + "_ap.txt").c_str(),"w");
+ 
+  // eval licensplate
+  if(eval_licensePlate){
+    fp_det = fopen((result_dir + "/stats_" + CLASS_NAMES[LICENSEPLATE] + "_detection.txt").c_str(),"w");
+    fp_ap = fopen((result_dir + "/stats_" + CLASS_NAMES[LICENSEPLATE] + "_ap.txt").c_str(),"w");
     if(compute_aos)
-      fp_ori = fopen((result_dir + "/stats_" + CLASS_NAMES[BIKE] + "_orientation.txt").c_str(),"w");
+      fp_ori = fopen((result_dir + "/stats_" + CLASS_NAMES[LICENSEPLATE] + "_orientation.txt").c_str(),"w");
     vector<double> precision[3], aos[3];
-    if( !eval_class(fp_det,fp_ap,fp_ori,BIKE,groundtruth,detections,compute_aos,precision[0],aos[0],EASY,N_TESTIMAGES)
-       || !eval_class(fp_det,fp_ap,fp_ori,BIKE,groundtruth,detections,compute_aos,precision[1],aos[1],MODERATE, N_TESTIMAGES)
-       || !eval_class(fp_det,fp_ap,fp_ori,BIKE,groundtruth,detections,compute_aos,precision[2],aos[2],HARD, N_TESTIMAGES)){
-      mail->msg("Bike evaluation failed.");
-      return false;
-    }
-    fclose(fp_det);
-    fclose(fp_ap);
-    saveAndPlotPlots(plot_dir,CLASS_NAMES[BIKE] + "_detection",CLASS_NAMES[BIKE],precision,0);
-    if(compute_aos){
-      saveAndPlotPlots(plot_dir,CLASS_NAMES[BIKE] + "_orientation",CLASS_NAMES[BIKE],aos,1);
-      fclose(fp_ori);
-    }
-  }
-
-  // eval cars
-  if(eval_car){
-    fp_det = fopen((result_dir + "/stats_" + CLASS_NAMES[CAR] + "_detection.txt").c_str(),"w");
-    fp_ap = fopen((result_dir + "/stats_" + CLASS_NAMES[CAR] + "_ap.txt").c_str(),"w");
-    if(compute_aos)
-      fp_ori = fopen((result_dir + "/stats_" + CLASS_NAMES[CAR] + "_orientation.txt").c_str(),"w");
-    vector<double> precision[3], aos[3];
-    if( !eval_class(fp_det,fp_ap,fp_ori,CAR,groundtruth,detections,compute_aos,precision[0],aos[0],EASY, N_TESTIMAGES)
-       || !eval_class(fp_det,fp_ap,fp_ori,CAR,groundtruth,detections,compute_aos,precision[1],aos[1],MODERATE,N_TESTIMAGES)
-       || !eval_class(fp_det,fp_ap,fp_ori,CAR,groundtruth,detections,compute_aos,precision[2],aos[2],HARD,N_TESTIMAGES)){
+    if( !eval_class(fp_det,fp_ap,fp_ori,LICENSEPLATE,groundtruth,detections,compute_aos, precision[0],aos[0],EASY, N_TESTIMAGES)
+       || !eval_class(fp_det,fp_ap,fp_ori,LICENSEPLATE,groundtruth,detections,compute_aos, precision[1],aos[1],MODERATE,N_TESTIMAGES)
+       || !eval_class(fp_det,fp_ap,fp_ori,LICENSEPLATE,groundtruth,detections,compute_aos,precision[2],aos[2],HARD,N_TESTIMAGES)){
       mail->msg("Car evaluation failed.");
       return false;
     }
     fclose(fp_det);
     fclose(fp_ap);
-    saveAndPlotPlots(plot_dir,CLASS_NAMES[CAR] + "_detection",CLASS_NAMES[CAR],precision,0);
+    saveAndPlotPlots(plot_dir,CLASS_NAMES[LICENSEPLATE] + "_detection",CLASS_NAMES[LICENSEPLATE],precision,0);
     if(compute_aos){
       fclose(fp_ori);
-      saveAndPlotPlots(plot_dir,CLASS_NAMES[CAR] + "_orientation",CLASS_NAMES[CAR],aos,1);
-    }
-  }
-
-  // eval bus
-  if(eval_bus){
-    fp_det = fopen((result_dir + "/stats_" + CLASS_NAMES[BUS]  + "_detection.txt").c_str(),"w");
-    fp_ap = fopen((result_dir + "/stats_" + CLASS_NAMES[BUS] + "_ap.txt").c_str(),"w");
-    if(compute_aos)
-      fp_ori = fopen((result_dir + "/stats_" + CLASS_NAMES[BUS] + "_orientation.txt").c_str(),"w");
-    vector<double> precision[3], aos[3];
-    if( !eval_class(fp_det,fp_ap,fp_ori,BUS,groundtruth,detections,compute_aos,precision[0],aos[0],EASY, N_TESTIMAGES)
-       || !eval_class(fp_det,fp_ap,fp_ori,BUS,groundtruth,detections,compute_aos,precision[1],aos[1],MODERATE, N_TESTIMAGES)
-       || !eval_class(fp_det,fp_ap,fp_ori,BUS,groundtruth,detections,compute_aos,precision[2],aos[2],HARD, N_TESTIMAGES)){
-      mail->msg("bus evaluation failed.");
-      return false;
-    }
-    fclose(fp_det);
-    fclose(fp_ap);
-    saveAndPlotPlots(plot_dir,CLASS_NAMES[BUS] + "_detection",CLASS_NAMES[BUS],precision,0);
-    if(compute_aos){
-      fclose(fp_ori);
-      saveAndPlotPlots(plot_dir,CLASS_NAMES[BUS] + "_orientation",CLASS_NAMES[BUS],aos,1);
+      saveAndPlotPlots(plot_dir,CLASS_NAMES[LICENSEPLATE] + "_orientation",CLASS_NAMES[LICENSEPLATE],aos,1);
     }
   }
 
@@ -786,17 +783,24 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
 int32_t main (int32_t argc,char *argv[]) {
 
   // we need 4 arguments!
-  if (argc!=5) {
-    cout << "Usage: ./eval_detection kitti_dir image_set_filename result_dir" << endl;
-    return 1;
-  }
+  // if (argc!=5) {
+  //   cout << "Usage: ./eval_detection kitti_dir image_set_filename result_dir" << endl;
+  //   return 1;
+  // }
 
-  read arguments
-  string const kitti_dir          = argv[1];
+  // read arguments
+  // string const kitti_dir          = argv[1];
+  // string const gt_dir             = ospj( kitti_dir, "label_2" ); // FIXME_MWM: should be part of input? configurable?
+  // string const image_set_filename = argv[2];
+  // string const result_dir         = argv[3];
+  // int32_t const N_TESTIMAGES      = atoi(argv[4]);
+
+
+  string const kitti_dir          = "/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/training/realLpData_1.0";
   string const gt_dir             = ospj( kitti_dir, "label_2" ); // FIXME_MWM: should be part of input? configurable?
-  string const image_set_filename = argv[2];
-  string const result_dir         = argv[3];
-  int32_t const N_TESTIMAGES      = atoi(argv[4]);
+  string const image_set_filename = "/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/val_oneimage.txt";
+  string const result_dir         = "/workspace/SqueezeDet-PyTorch_simple_bypass/exp/testing_alprModel/results";
+  int32_t const N_TESTIMAGES      = 12067;
 
   // init notification mail
   Mail *mail = new Mail();

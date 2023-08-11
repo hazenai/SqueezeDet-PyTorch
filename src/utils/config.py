@@ -54,7 +54,7 @@ class Config(object):
                                  help='batch size')
         self.parser.add_argument('--master_batch_size', type=int, default=-1,
                                  help='batch size on the master gpu.')
-        self.parser.add_argument('--save_intervals', type=int, default=30,
+        self.parser.add_argument('--save_intervals', type=int, default=10,
                                  help='number of epochs to save model.')
         self.parser.add_argument('--val_intervals', type=int, default=5,
                                  help='number of epochs to run validation.')

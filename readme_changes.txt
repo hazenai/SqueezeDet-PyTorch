@@ -5,6 +5,8 @@ Use following flags:
 --image_extension_jpg: ususally images in dataset are of png and jpg. default is set for png if the dataset contains jpg pass this flag
 --oneimage: will read file IDs from data/kitti/image_sets/train_oneimage.txt or data/kitti/image_sets/val_oneimage.txt instead of data/kitti/image_sets/train.txt or data/kitti/image_sets/val.txt which is default. (Beware: the "oneimage" is misleading). train or val is decided on the bases of mode
 --mode: set it to "eval" or "train". trian is default. verify it in config.py file
+--image_augmentations: False by default. flag which stores true
+
 
 Train Validation Split:
 - The file ids are fetched from image_2 or label_2 and stored in trainval.txt
