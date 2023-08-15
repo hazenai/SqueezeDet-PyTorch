@@ -24,6 +24,7 @@ class Config(object):
         self.parser.add_argument('--image_extension_jpg', action='store_true', 
                                  default=False,help='Uses jpg image extension if the flag is true else uses default png')
         self.parser.add_argument('--image_augmentations', action='store_true', default=False, help='performs image augmentations')
+        self.parser.add_argument('--val_data_format_xy', action='store_true', default=False, help='specify the format of ground truth. default is yx in synthetic case. specify xy in case of real data where gt is x1y1x2y2')
         
         # model
         self.parser.add_argument('--arch', default='squeezedet',

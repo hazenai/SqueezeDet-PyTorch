@@ -258,11 +258,12 @@ class YOLO(BaseDataset):
 
     def evaluate(self):
         kitti_eval_tool_path = os.path.join(self.cfg.root_dir, 'src/utils/kitti-eval/cpp/evaluate_object_LP')
-        cmd = '{} {} {} {} {}'.format(kitti_eval_tool_path,
+        cmd = '{} {} {} {} {} {}'.format(kitti_eval_tool_path,
                                       os.path.join(self.data_dir, self.cfg.sub_data_dir),
                                       self.sample_set_path,
                                       self.results_dir,
-                                      len(self.sample_ids))
+                                      len(self.sample_ids),
+                                      self.cfg.val_data_format_xy)
 
         status = subprocess.call(cmd, shell=True)
 

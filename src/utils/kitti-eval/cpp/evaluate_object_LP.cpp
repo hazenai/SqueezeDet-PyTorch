@@ -158,7 +158,7 @@ vector<tDetection> loadDetections(string file_name, bool &compute_aos, bool &eva
   return detections;
 }
 
-vector<tGroundtruth> loadGroundtruth(string file_name,bool &success) {
+vector<tGroundtruth> loadGroundtruth(string file_name,bool &success, bool evalutae_groundTruth_format_xy) {
 
   // holds all ground truth (ignored ground truth is indicated by an index vector
   vector<tGroundtruth> groundtruth;
@@ -179,12 +179,23 @@ vector<tGroundtruth> loadGroundtruth(string file_name,bool &success) {
     //   g.box.type = str;
     //   groundtruth.push_back(g);
     // }
-    if (fscanf(fp, "%lf,%lf,%lf,%lf",
+    if (evalutae_groundTruth_format_xy){
+      if (fscanf(fp, "%lf,%lf,%lf,%lf",
                    &g.box.x1,   &g.box.y1,     &g.box.x2,    &g.box.y2
                   )==4) {
       g.box.type = "licenseplate";
       groundtruth.push_back(g);
     }
+    }
+    else{
+      if (fscanf(fp, "%lf,%lf,%lf,%lf",
+                   &g.box.y1,   &g.box.x1,     &g.box.y2,    &g.box.x2
+                  )==4) {
+      g.box.type = "licenseplate";
+      groundtruth.push_back(g);
+    }
+    }
+    
   }
   fclose(fp);
   success = true;
@@ -666,7 +677,7 @@ void saveAndPlotPlots(string dir_name,string file_name,string obj_type,vector<do
   system(command);
 }
 
-bool eval(string const & result_dir, string const & image_set_filename, string const & gt_dir,  Mail* mail, int32_t N_TESTIMAGES){
+bool eval(string const & result_dir, string const & image_set_filename, string const & gt_dir,  Mail* mail, int32_t N_TESTIMAGES, bool evalutae_groundTruth_format_xy){
 
   // set some global parameters
   initGlobals();
@@ -717,7 +728,7 @@ bool eval(string const & result_dir, string const & image_set_filename, string c
 
     // read ground truth and result poses
     bool gt_success,det_success;
-    vector<tGroundtruth> gt   = loadGroundtruth(ospj(gt_dir,file_name),gt_success);
+    vector<tGroundtruth> gt   = loadGroundtruth(ospj(gt_dir,file_name),gt_success, evalutae_groundTruth_format_xy);
     vector<tDetection>   det  = loadDetections(ospj(result_dir,"data",file_name), compute_aos, eval_licensePlate, det_success);
 
 
@@ -794,8 +805,9 @@ int32_t main (int32_t argc,char *argv[]) {
   string const image_set_filename = argv[2];
   string const result_dir         = argv[3];
   int32_t const N_TESTIMAGES      = atoi(argv[4]);
+  bool const evalutae_groundTruth_format_xy = atoi(argv[5]);
 
-
+  
   // string const kitti_dir          = "/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/training/realLpData_1.0";
   // string const gt_dir             = ospj( kitti_dir, "label_2" ); // FIXME_MWM: should be part of input? configurable?
   // string const image_set_filename = "/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/val_oneimage.txt";
@@ -806,8 +818,16 @@ int32_t main (int32_t argc,char *argv[]) {
   Mail *mail = new Mail();
   mail->msg("Thank you for participating in our evaluation!");
 
+  if (evalutae_groundTruth_format_xy){
+    mail->msg("Thank you for participating in our evaluation!");  
+  }
+  else{
+    mail->msg("Thank you for participating in our evaluation!");
+  }
+
+  
   // run evaluation
-  if (eval( result_dir, image_set_filename, gt_dir, mail, N_TESTIMAGES )) {
+  if (eval( result_dir, image_set_filename, gt_dir, mail, N_TESTIMAGES, evalutae_groundTruth_format_xy)) {
     mail->msg( ("Your evaluation results are available in " + result_dir).c_str() );
   } else {
     mail->msg("An error occured while processing your results.");
