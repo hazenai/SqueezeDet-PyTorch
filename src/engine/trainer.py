@@ -4,6 +4,7 @@ import torch.nn as nn
 
 from utils.data_parallel import DataParallel
 from utils.misc import MetricLogger
+from tqdm import tqdm
 
 
 class Trainer(object):
@@ -29,7 +30,7 @@ class Trainer(object):
         num_iters = len(data_loader) if self.cfg.num_iters < 0 else self.cfg.num_iters
         end = time.time()
 
-        for iter_id, batch in enumerate(data_loader):
+        for iter_id, batch in tqdm(enumerate(data_loader)):
             if iter_id >= num_iters:
                 break
 
@@ -67,7 +68,7 @@ class Trainer(object):
 
             msg += '| data {:.1f}ms | net {:.1f}ms'.format(1000. * data_timer.val, 1000. * net_timer.val)
             if iter_id % self.cfg.print_interval == 0:
-                print(msg)
+                # print(msg)
                 with open(cfg.log_file, 'a+') as file:
                     file.write(msg + '\n')
 

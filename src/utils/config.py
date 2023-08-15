@@ -57,7 +57,7 @@ class Config(object):
                                  help='batch size on the master gpu.')
         self.parser.add_argument('--save_intervals', type=int, default=3,
                                  help='number of epochs to save model.')
-        self.parser.add_argument('--val_intervals', type=int, default=1,
+        self.parser.add_argument('--val_intervals', type=int, default=5,
                                  help='number of epochs to run validation.')
         self.parser.add_argument('--no_eval', action='store_true', default=False,
                                  help='bypass mAP evaluation during training.')
