@@ -56,11 +56,11 @@ class Config(object):
                                  help='batch size on the master gpu.')
         self.parser.add_argument('--save_intervals', type=int, default=3,
                                  help='number of epochs to save model.')
-        self.parser.add_argument('--val_intervals', type=int, default=5,
+        self.parser.add_argument('--val_intervals', type=int, default=1,
                                  help='number of epochs to run validation.')
         self.parser.add_argument('--no_eval', action='store_true', default=False,
                                  help='bypass mAP evaluation during training.')
-        self.parser.add_argument('--print_interval', type=int, default=20,
+        self.parser.add_argument('--print_interval', type=int, default=1,
                                  help='disable progress bar and print to screen.')
         self.parser.add_argument('--flip_prob', type=float, default=0.5,
                                  help='probability of horizontal flip during training.')
