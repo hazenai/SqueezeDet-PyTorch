@@ -169,8 +169,8 @@ vector<tGroundtruth> loadGroundtruth(string file_name,bool &success) {
   }
   while (!feof(fp)) {
     tGroundtruth g;
-    double trash;
-    char str[255];
+    // double trash;
+    // char str[255];
     // if (fscanf(fp, "%s %lf %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
     //                str, &g.truncation, &g.occlusion, &g.box.alpha,
     //                &g.box.x1,   &g.box.y1,     &g.box.x2,    &g.box.y2,
