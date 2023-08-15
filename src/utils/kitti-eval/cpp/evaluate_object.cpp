@@ -791,7 +791,7 @@ int32_t main (int32_t argc,char *argv[]) {
     return 1;
   }
 
-  read arguments
+  // read arguments
   string const kitti_dir          = argv[1];
   string const gt_dir             = ospj( kitti_dir, "label_2" ); // FIXME_MWM: should be part of input? configurable?
   string const image_set_filename = argv[2];
