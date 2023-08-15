@@ -789,18 +789,18 @@ int32_t main (int32_t argc,char *argv[]) {
   // }
 
   // read arguments
-  // string const kitti_dir          = argv[1];
-  // string const gt_dir             = ospj( kitti_dir, "label_2" ); // FIXME_MWM: should be part of input? configurable?
-  // string const image_set_filename = argv[2];
-  // string const result_dir         = argv[3];
-  // int32_t const N_TESTIMAGES      = atoi(argv[4]);
-
-
-  string const kitti_dir          = "/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/training/realLpData_1.0";
+  string const kitti_dir          = argv[1];
   string const gt_dir             = ospj( kitti_dir, "label_2" ); // FIXME_MWM: should be part of input? configurable?
-  string const image_set_filename = "/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/val_oneimage.txt";
-  string const result_dir         = "/workspace/SqueezeDet-PyTorch_simple_bypass/exp/testing_alprModel/results";
-  int32_t const N_TESTIMAGES      = 12067;
+  string const image_set_filename = argv[2];
+  string const result_dir         = argv[3];
+  int32_t const N_TESTIMAGES      = atoi(argv[4]);
+
+
+  // string const kitti_dir          = "/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/training/realLpData_1.0";
+  // string const gt_dir             = ospj( kitti_dir, "label_2" ); // FIXME_MWM: should be part of input? configurable?
+  // string const image_set_filename = "/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/val_oneimage.txt";
+  // string const result_dir         = "/workspace/SqueezeDet-PyTorch_simple_bypass/exp/testing_alprModel/results";
+  // int32_t const N_TESTIMAGES      = 12067;
 
   // init notification mail
   Mail *mail = new Mail();
