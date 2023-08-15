@@ -30,7 +30,7 @@ class Trainer(object):
         num_iters = len(data_loader) if self.cfg.num_iters < 0 else self.cfg.num_iters
         end = time.time()
 
-        for iter_id, batch in tqdm(enumerate(data_loader)):
+        for iter_id, batch in enumerate(tqdm(data_loader)):
             if iter_id >= num_iters:
                 break
 
