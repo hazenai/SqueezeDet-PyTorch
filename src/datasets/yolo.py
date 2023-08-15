@@ -257,7 +257,7 @@ class YOLO(BaseDataset):
                     fp.write(line)
 
     def evaluate(self):
-        kitti_eval_tool_path = os.path.join(self.cfg.root_dir, 'src/utils/kitti-eval/cpp/evaluate_object_LP')
+        kitti_eval_tool_path = os.path.join(self.cfg.root_dir, 'src/utils/kitti-eval/cpp/evaluate_object_LP.cpp')
         cmd = '{} {} {} {} {}'.format(kitti_eval_tool_path,
                                       os.path.join(self.data_dir, self.cfg.sub_data_dir),
                                       self.sample_set_path,
