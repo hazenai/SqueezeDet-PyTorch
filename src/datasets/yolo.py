@@ -195,8 +195,9 @@ class YOLO(BaseDataset):
     
     def applyImageAugmentations(self, image, boxes, imageMeta):
         bbs = BoundingBoxesOnImage(
-            [BoundingBox(x1=bx[1], y1=bx[0], x2=bx[3], y2=bx[2]) for bx in boxes], 
+            [BoundingBox(x1=bx[0], y1=bx[1], x2=bx[2], y2=bx[3]) for bx in boxes], 
             shape=image.shape)
+        
         import cv2
         
         img_aug, bbs_aug = self.seq(image=image.copy().astype(np.uint8), bounding_boxes=bbs.copy())
