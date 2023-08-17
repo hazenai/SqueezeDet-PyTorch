@@ -53,14 +53,16 @@ def train(cfg):
                                                shuffle=True,
                                                drop_last=False,
                                                 # persistent_workers=True,
-                                                prefetch_factor=4)
+                                                # prefetch_factor=4
+                                                )
 
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=cfg.batch_size,
                                              num_workers=cfg.num_workers,
                                              pin_memory=True,
                                             #  persistent_workers=True,
-                                                prefetch_factor=4)
+                                                # prefetch_factor=4
+                                                )
 
     model.to(device=cfg.device)
 

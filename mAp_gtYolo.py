@@ -3,8 +3,10 @@ import torch
 from collections import Counter
 import os
 from tqdm import tqdm
+from PIL import Image
 
-gtFromatYX = True
+
+gtFromatYX = False
 print('-'*20)
 if gtFromatYX:
     print("Ground Truths are in format y1x1y2x2")
@@ -14,13 +16,19 @@ print('-'*20)
 
 # Change below paths to compute mAP for different boxes according to your requirements
 base_path = '/workspace/SqueezeDet-PyTorch_simple_bypass'
+# /workspace/SqueezeDet-PyTorch_simple_bypass/exp/Experiments_Record_4.0+_data/Training_0.4_synth_4.210_240k_debug_val_split_90-10
 gt_boxes_path = os.path.join(base_path, 'data/kitti/training/realLpData_1.0/label_2')
 pred_boxes_path = os.path.join(base_path, 'exp/TestData_modelTrainID_0.4_epoch100_synth_4.210/results/data')
-gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/TestData_modelTrainID_0.4_epoch100_synth_4.210/results/data'))
+
+# gtImageIdsPath = os.listdir(pred_boxes_path)
+# gtImageIdsPath = [imgId[:-4] for imgId in gtImageIdsPath]
+
+gtImageIdsPath = os.listdir(gt_boxes_path)
 gtImageIdsPath = [imgId[:-4] for imgId in gtImageIdsPath]
 
+
 num_classes = ('licenseplate','car')
-iou_threshold = 0.85
+iou_threshold = 0.0001
 average_precisions = []
 epsilon = 1e-6
 
@@ -55,8 +63,10 @@ def iou_calc(pred_bbox, gt_bbox):
 
 pred_boxes, true_boxes = [], []                                                                                                                           
                                                                                                    
-for name in names:                                                                                                                 
-    file_path = os.path.join(gt_boxes_path, name+'.txt')                                                                                  
+for name in tqdm(names):
+    # if name not in [pth[:-4] for pth in os.listdir(pred_boxes_path)]:
+    #     continue
+    file_path = os.path.join(gt_boxes_path, name + '.txt')                                                                                  
     with open(file_path, 'r') as fp:
         annotations = fp.readlines()
 
@@ -73,6 +83,8 @@ for name in names:
 listOfNotDetectedImages = []
 listdir_pred_boxes_path = os.listdir(pred_boxes_path)
 for name in tqdm(listdir_pred_boxes_path):                                                                                                                                                    
+    if name[:-4] not in names:
+        continue
     if name.endswith('.txt'):                                                                                         
         with open(os.path.join(pred_boxes_path,name), 'r') as fp:                                                                
             annotations = fp.readlines()                                                                              
@@ -84,10 +96,12 @@ for name in tqdm(listdir_pred_boxes_path):
         box = [float(x) for x in ann[4:8]]                                                                  
         pred_boxes.append([name.split('.')[0], ann[0].lower(), float(ann[-1]), box[0], box[1], box[2], box[3]])                                                                                             
 
-print("Total Ground Truth Images File IDs: ", len(names))
+print("Total Ground Truth Images File IDs: ", len(set([pd[0] for pd in true_boxes])))
 print("Total Prediction File IDs: ", len(set([pd[0] for pd in pred_boxes])))
 print("Total File IDs with no detection: ", len(listOfNotDetectedImages))
 
+framesWithCOmpliantCases=[]
+frames_with_off_Detections = []
 for c in num_classes:                                                                                                                                           
     detections, ground_truths = [], []                                                                              
                                                                                                                                          
@@ -104,16 +118,17 @@ for c in num_classes:
         amount_bboxes[key] = torch.zeros(val)                                                                                              
                                                                                                  
     detections.sort(key=lambda x:x[2], reverse=True)                                                                                                                               
+
     TP = torch.zeros((len(detections)))                                                                                        
     FP = torch.zeros((len(detections)))                                                                                        
     total_true_bboxes = len(ground_truths)                                                                                                      
-                                                                                                                                     
-    for detection_idx, detection in tqdm(enumerate(detections)):                                                                              
-        ground_truth_img = [ bbox for bbox in ground_truths if bbox[0]==detection[0] ]                                                                                                                                 
+    
+    for detection_idx, detection in enumerate(tqdm(detections)):                                                                              
+        ground_truth_img = [ bbox for bbox in ground_truths if bbox[0]==detection[0] ]                                                                                                                        
                                                                                                
         num_gts = len(ground_truth_img)                                                                                       
         best_iou = 0                                                                               
-                                                                                                                             
+
         for idx, gt in enumerate(ground_truth_img):                                                                       
                                                                                                             
             # iou = iou_calc(torch.tensor(detection[3:]), torch.tensor(gt[2:]))
@@ -127,14 +142,19 @@ for c in num_classes:
                 best_iou=iou                                                                        
                 best_gt_idx = idx                                                                     
 
+
+        # save_best_gt_det
         if best_iou >= iou_threshold:                                                                         
             if amount_bboxes[detection[0]][best_gt_idx] == 0:                                                                           
                 TP[detection_idx] = 1                                                        
-                amount_bboxes[detection[0]][best_gt_idx] = 1                                                                         
+                amount_bboxes[detection[0]][best_gt_idx] = 1
+                framesWithCOmpliantCases.append(gt[0])                                                                         
             else:                                                                                               
                 FP[detection_idx] = 1                                                                  
         else:                                                                    
-            FP[detection_idx] = 1                                                                               
+            FP[detection_idx] = 1
+                                                                                   
+
 
     TP_cumsum = torch.cumsum(TP, dim=0)                                                                           
     FP_cumsum = torch.cumsum(FP, dim=0)                                                                           
@@ -147,4 +167,19 @@ for c in num_classes:
     break      # Add break statement as we only have one class in this case i-e licenseplate                                                                                                               
                                                                                                                         
 mAP = sum(average_precisions)/len(average_precisions)                                                             
-print("mAp socre @ iou threshold {} = {}".format(iou_threshold, mAP*100))                                                                                                  
+print("mAp socre @ iou threshold {} = {}".format(iou_threshold, mAP*100))
+
+
+# frames_with_non_compliant_detections=[]
+
+# for gtName in names:
+#     if gtName in framesWithCOmpliantCases:
+#         continue
+#     frames_with_non_compliant_detections.append(gtName)
+
+# print("length of non compliant cases: ", len(frames_with_non_compliant_detections))
+# import pickle as pkl
+# with open("frames_with_non_compliant_cases.txt", 'w') as fp:
+#     for frm in frames_with_non_compliant_detections:
+#         fp.write(str(frm + '\n'))
+
