@@ -62,7 +62,7 @@ class BaseDataset(torch.utils.data.Dataset):
                     ])
                 ),
                 iaa.Sometimes(
-                    p=0.15,
+                    p=0.20,
                     then_list=iaa.OneOf([
                         ## Smoothing
                         iaa.OneOf([
@@ -124,23 +124,46 @@ class BaseDataset(torch.utils.data.Dataset):
                 ])
             ),
             
-            iaa.Sometimes(
-                0.3,
-                iaa.OneOf([
-                    iaa.imgcorruptlike.Fog(severity=1),
-                    iaa.imgcorruptlike.Snow(severity=1),
-                    iaa.imgcorruptlike.Frost(severity=1)
-                ])
-            ),
+            # iaa.Sometimes(
+            #     0.3,
+            #     iaa.OneOf([
+            #         iaa.imgcorruptlike.Fog(severity=1),
+            #         iaa.imgcorruptlike.Snow(severity=1),
+            #         iaa.imgcorruptlike.Frost(severity=1)
+            #     ])
+            # ),
 
+            # iaa.Sometimes(
+            #     p=0.3,
+            #     then_list=iaa.OneOf([
+            #         ## Smoothing
+            #         iaa.OneOf([
+            #             iaa.pillike.FilterSmooth(),
+            #             iaa.pillike.FilterSmoothMore()
+            #         ]),
+            #         ## Blurring
+            #         iaa.OneOf([
+            #             iaa.imgcorruptlike.DefocusBlur(severity=1),
+            #             iaa.imgcorruptlike.ZoomBlur(severity=1),
+            #             iaa.MotionBlur(k=(3, 15), angle=(0, 360),direction=(-1.0, 1.0)),
+            #             iaa.imgcorruptlike.MotionBlur(severity=1),
+            #             iaa.BilateralBlur(d=(3, 10), sigma_color=(10, 250), sigma_space=(10, 250)),
+            #         ]),
+            #         ## Edge Enhancement
+            #         iaa.OneOf([
+            #             iaa.pillike.FilterEdgeEnhance(),
+            #             iaa.pillike.FilterEdgeEnhanceMore(),
+            #             iaa.pillike.FilterContour(),
+            #             iaa.pillike.FilterDetail(),            
+            #         ])
+            #     ])
+            # ),
             iaa.Sometimes(
                 0.2,
                 iaa.OneOf([
                     iaa.ChangeColorTemperature((3500, 15000)),
                 ])
             ),
-
-
             ],random_order=True)
 
     def __getitem__(self, index):
