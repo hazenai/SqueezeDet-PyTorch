@@ -213,7 +213,8 @@ class YOLO(BaseDataset):
         # image_after = bbs_aug.draw_on_image(img_aug, size=2, color=[0, 0, 255])
         # cv2.imwrite(os.path.join('/workspace/augRes/before_aug', imageMeta['image_id'] + '.jpg'), image_before)
         # cv2.imwrite(os.path.join('/workspace/augRes/after_aug', imageMeta['image_id'] + '.jpg'), image_after)
-
+        # Image.fromarray(np.asarray(image_before)).save(os.path.join('/workspace/augRes/before_aug', imageMeta['image_id'] + '.jpg'))
+        # Image.fromarray(np.asarray(image_after)).save(os.path.join('/workspace/augRes/after_aug', imageMeta['image_id'] + '.jpg'))
 
         return img_aug, augmentedBoxes
     
