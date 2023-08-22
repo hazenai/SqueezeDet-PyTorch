@@ -93,73 +93,96 @@ class BaseDataset(torch.utils.data.Dataset):
             iaa.Sometimes(
                 p=0.3,
                 then_list=iaa.OneOf([
-                        iaa.Affine(
-                                translate_percent={"x":(-0.2,0.2),"y":(-0.2,0.2)},            
-                                scale=(0.7, 1.7),
-                                rotate=(-5, 5),
-                                shear=(-1, 1),
-                            ),
-                        #iaa.PerspectiveTransform(scale=(0.02, 0.125)),
+                        # iaa.Affine(
+                        #         # translate_percent={"x":(-0.1,0.1),"y":(-0.1,0.1)},            
+                        #         scale=(0.7, 1.7),
+                        #         # rotate=(-5, 5), # assuming that the rotation is handeled while synthetic data generation
+                        #         shear=(-1, 1),
+                        #         keep_size=False,
+                        #     ),
+                        iaa.PerspectiveTransform(scale=(0.02, 0.125), keep_size=False),
                     ])
-            ),                
+            ),
+            # epoch time increases x2
+            # iaa.Sometimes(
+            #     0.1,
+            #     iaa.OneOf([
+            #         iaa.AdditiveLaplaceNoise(scale=0.2*255),
+            #         iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
+            #     ])
+            # ),
+            iaa.Sometimes(
+                0.3,
+                iaa.OneOf([
+                    iaa.Multiply((0.95,1.05), per_channel=0.25),
+                    iaa.LinearContrast((0.95,1.05)),
+                ])
+            ),
+            
+            
             iaa.Sometimes(
                 0.2,
+                iaa.OneOf([
+                    iaa.imgcorruptlike.JpegCompression(severity=2),
+                    iaa.imgcorruptlike.JpegCompression(severity=1),
+                    iaa.imgcorruptlike.Pixelate(severity=2),
+                    iaa.MultiplyElementwise((0.5, 1.5), per_channel=0.5),
+                ])
+                
+            ),
+            iaa.Sometimes(
+                0.1,
+                iaa.OneOf(
+                    [
+                        iaa.Dropout(p=(0.0, 0.1), per_channel=0.5),
+                        iaa.CoarseDropout(
+                            p=(0.02, 0.1), size_percent=(0.02, 0.15), per_channel=0.5
+                        ),
+                        # iaa.Dropout2d(p=1),
+                    ]
+                ),
+            ),
+            iaa.Sometimes(
+                0.1,
                 iaa.OneOf([
                     iaa.Fliplr(),
                 ])
             ),
             iaa.Sometimes(
-                0.2,
+                0.05,
                 iaa.OneOf([
-                    iaa.CropAndPad(percent=(-0.3, 0.3), pad_mode=ia.ALL),
+                    iaa.CropAndPad(percent=(-0.3, 0.3), pad_mode=ia.ALL, keep_size=False),
                 ])
             ),
 
             iaa.Sometimes(
-                0.3,
+                0.4,
                 iaa.OneOf([
-                    iaa.GaussianBlur((0.0, 1.0)),
+                    iaa.GaussianBlur((0.0, 2.0)),
                     iaa.AverageBlur((2,5)),
                     iaa.MedianBlur((3,5))
                 ])
             ),
-            
-            # iaa.Sometimes(
-            #     0.3,
-            #     iaa.OneOf([
-            #         iaa.imgcorruptlike.Fog(severity=1),
-            #         iaa.imgcorruptlike.Snow(severity=1),
-            #         iaa.imgcorruptlike.Frost(severity=1)
-            #     ])
-            # ),
-
-            # iaa.Sometimes(
-            #     p=0.3,
-            #     then_list=iaa.OneOf([
-            #         ## Smoothing
-            #         iaa.OneOf([
-            #             iaa.pillike.FilterSmooth(),
-            #             iaa.pillike.FilterSmoothMore()
-            #         ]),
-            #         ## Blurring
-            #         iaa.OneOf([
-            #             iaa.imgcorruptlike.DefocusBlur(severity=1),
-            #             iaa.imgcorruptlike.ZoomBlur(severity=1),
-            #             iaa.MotionBlur(k=(3, 15), angle=(0, 360),direction=(-1.0, 1.0)),
-            #             iaa.imgcorruptlike.MotionBlur(severity=1),
-            #             iaa.BilateralBlur(d=(3, 10), sigma_color=(10, 250), sigma_space=(10, 250)),
-            #         ]),
-            #         ## Edge Enhancement
-            #         iaa.OneOf([
-            #             iaa.pillike.FilterEdgeEnhance(),
-            #             iaa.pillike.FilterEdgeEnhanceMore(),
-            #             iaa.pillike.FilterContour(),
-            #             iaa.pillike.FilterDetail(),            
-            #         ])
-            #     ])
-            # ),
             iaa.Sometimes(
                 0.2,
+                iaa.OneOf([
+                    iaa.MotionBlur(k=(3, 4), angle=(0, 360), direction=(-1.0, 1.0)),
+                    iaa.BilateralBlur(
+                        d=(3, 10), sigma_color=(10, 250), sigma_space=(10, 250)
+                    ),
+                    iaa.ChangeColorspace(from_colorspace="BGR", to_colorspace="HSV"),
+                ])
+            ),
+            iaa.Sometimes(
+                p=0.1,
+                then_list=iaa.OneOf([
+                    # # Smoothing
+                    iaa.pillike.FilterSmooth(),
+                    iaa.pillike.FilterSmoothMore()
+                ])
+            ),
+            iaa.Sometimes(
+                0.1,
                 iaa.OneOf([
                     iaa.ChangeColorTemperature((3500, 15000)),
                 ])

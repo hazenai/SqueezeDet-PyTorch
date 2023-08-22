@@ -1,5 +1,6 @@
 import os
 import subprocess
+import cv2
 
 import numpy as np
 import skimage.io   
@@ -108,6 +109,8 @@ class YOLO(BaseDataset):
             image_path = os.path.join(self.data_dir, self.cfg.sub_data_dir + '/image_2', image_id + '.jpg')
         else:
             image_path = os.path.join(self.data_dir, self.cfg.sub_data_dir + '/image_2', image_id + '.png')
+        if not os.path.isfile(image_path):
+            print("the file {} with index {} does not exist".format(index, image_path))
         image = default_loader(image_path)
         if image.mode == 'L':
             image = image.convert('RGB')
@@ -192,34 +195,44 @@ class YOLO(BaseDataset):
     # ========================================
     #                preprocess yolo
     # ========================================
+    def find_augArea_over_orgArea(self, augbox, orgbox):
+        l1,l2 = abs(augbox[0] - augbox[2]), abs(orgbox[0] - orgbox[2])
+        h1,h2 = abs(augbox[1] - augbox[3]), abs(orgbox[1] - orgbox[3])
+        augArea, orgArea = l1*h1, l2*h2
+        return augArea/orgArea
+    
     
     def applyImageAugmentations(self, image, boxes, imageMeta):
         bbs = BoundingBoxesOnImage(
             [BoundingBox(x1=bx[0], y1=bx[1], x2=bx[2], y2=bx[3]) for bx in boxes], 
             shape=image.shape)
         
-        import cv2
-        
+        augArea_over_orgArea=1
         img_aug, bbs_aug = self.seq(image=image.copy().astype(np.uint8), bounding_boxes=bbs.copy())
         bbs_aug = bbs_aug.remove_out_of_image(fully=True).clip_out_of_image()
 
-        if len(bbs_aug.bounding_boxes)==0 or not bbs_aug.bounding_boxes[0].is_fully_within_image(img_aug):
+        augmentedBoxes = np.asarray([[bx.x1, bx.y1, bx.x2, bx.y2] for bx in bbs_aug.bounding_boxes])
+        OrginalBoxes = np.asarray([[bx.x1, bx.y1, bx.x2, bx.y2] for bx in bbs.bounding_boxes])
+
+        if len(augmentedBoxes) and len(OrginalBoxes):
+            augArea_over_orgArea =self.find_augArea_over_orgArea(augmentedBoxes[0], OrginalBoxes[0])
+        
+        if augArea_over_orgArea < 0.7 or len(bbs_aug.bounding_boxes)==0 or not bbs_aug.bounding_boxes[0].is_fully_within_image(img_aug):
             # print("Dropped image aug for: ", imageMeta['image_id'])
             return image, boxes
 
-        augmentedBoxes = np.asarray([[bx.x1, bx.y1, bx.x2, bx.y2] for bx in bbs_aug.bounding_boxes])
-
+        
+        # Debug Augmentations: Uncomment following
         # image_before = bbs.draw_on_image(image, size=2)
         # image_after = bbs_aug.draw_on_image(img_aug, size=2, color=[0, 0, 255])
         # cv2.imwrite(os.path.join('/workspace/augRes/before_aug', imageMeta['image_id'] + '.jpg'), image_before)
         # cv2.imwrite(os.path.join('/workspace/augRes/after_aug', imageMeta['image_id'] + '.jpg'), image_after)
 
-
         return img_aug, augmentedBoxes
     
     def preprocess(self, image, image_meta, boxes=None, class_ids=None):
         # print('Preprocess from child of baseDataset: yolo is called')
-        if self.cfg.image_augmentations and self.cfg.mode == 'train':
+        if self.cfg.image_augmentations and self.phase == 'train':
             image,boxes = self.applyImageAugmentations(image, boxes, image_meta)
         image, image_meta = whiten(image, image_meta, self.rgb_mean, self.rgb_std)
         # resize the image
