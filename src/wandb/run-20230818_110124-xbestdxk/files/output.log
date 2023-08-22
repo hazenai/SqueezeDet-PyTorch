@@ -1,0 +1,114 @@
+wandb run id:  xbestdxk
+pase is: train
+/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/train_oneimage.txt
+pase is: val
+/workspace/SqueezeDet-PyTorch_simple_bypass/data/kitti/image_sets/val_oneimage.txt
+anchors                        [[  8.   8.  18.  17.]
+ [  8.   8.  24.  17.]
+ [  8.   8.  34.  18.]
+ ...
+ [248. 248.  69.  34.]
+ [248. 248.  99.  35.]
+ [248. 248. 142.  37.]]
+anchors_per_grid               9
+arch                           squeezedet
+batch_size                     32
+bbox_loss_weight               32.0
+chunk_sizes                    [32]
+class_loss_weight              3.0
+class_names                    ['licenseplate']
+data_dir                       /workspace/SqueezeDet-PyTorch_simple_bypass/data
+dataset                        yolo
+debug                          2
+debug_dir                      /workspace/SqueezeDet-PyTorch_simple_bypass/exp/temporary_augmentation_2.0_testing/debug
+device                         cuda
+drift_prob                     1.0
+dropout_prob                   0
+exp_dir                        /workspace/SqueezeDet-PyTorch_simple_bypass/exp
+exp_id                         temporary_augmentation_2.0_testing
+flip_prob                      0.5
+forbid_resize                  False
+gpus                           [0]
+gpus_str                       0
+grad_norm                      1
+grid_size                      (16, 16)
+image_augmentations            True
+image_extension_jpg            True
+input_size                     (256, 256)
+keep_top_k                     64
+load_model                     /workspace/SqueezeDet-PyTorch_simple_bypass/models/model_Best_synth_4.210_id_0.4.pth
+load_pretrained                True
+log_file                       /workspace/SqueezeDet-PyTorch_simple_bypass/exp/temporary_augmentation_2.0_testing/training_logs.txt
+lr                             0.00016
+master_batch_size              32
+mode                           train
+momentum                       0.9
+negative_score_loss_weight     129.1
+nms_thresh                     0.4
+no_eval                        False
+not_cuda_benchmark             False
+num_anchors                    2304
+num_classes                    1
+num_epochs                     100000
+num_iters                      -1
+num_workers                    16
+oneimage                       True
+positive_score_loss_weight     64.5
+print_interval                 1
+qat                            False
+rgb_mean                       [[[0. 0. 0.]]]
+rgb_std                        [[[40. 40. 40.]]]
+root_dir                       /workspace/SqueezeDet-PyTorch_simple_bypass
+save_dir                       /workspace/SqueezeDet-PyTorch_simple_bypass/exp/temporary_augmentation_2.0_testing
+save_intervals                 3
+score_thresh                   0.5
+seed                           42
+stride                         16
+sub_data_dir                   training/synth_4.210
+val_data_format_xy             False
+val_intervals                  5
+weight_decay                   0.0001
+quantization is: False
+loaded model /workspace/SqueezeDet-PyTorch_simple_bypass/models/model_Best_synth_4.210_id_0.4.pth, epoch 93
+Model successfully loaded.
+63
+
+
+
+
+
+
+ 89%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌                                | 56/63 [00:13<00:00,  8.14it/s]
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 63/63 [00:14<00:00,  4.48it/s]
+  0%|                                                                                                                                                                                                                                                                                                             | 0/63 [00:00<?, ?it/s]
+
+
+
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 63/63 [00:13<00:00, 21.71it/s]
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 63/63 [00:13<00:00,  4.75it/s]
+  0%|                                                                                                                                                                                                                                                                                                             | 0/63 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "main.py", line 91, in <module>
+    train(cfg)
+  File "/workspace/SqueezeDet-PyTorch_simple_bypass/src/train.py", line 80, in train
+    train_stats = trainer.train_epoch(epoch, train_loader, cfg=cfg)
+  File "/workspace/SqueezeDet-PyTorch_simple_bypass/src/engine/trainer.py", line 86, in train_epoch
+    return self.run_epoch('train', epoch, data_loader, cfg=cfg)
+  File "/workspace/SqueezeDet-PyTorch_simple_bypass/src/engine/trainer.py", line 33, in run_epoch
+    for iter_id, batch in enumerate(tqdm(data_loader)):
+  File "/usr/local/lib/python3.7/dist-packages/tqdm/std.py", line 1180, in __iter__
+    for obj in iterable:
+  File "/usr/local/lib/python3.7/dist-packages/torch/utils/data/dataloader.py", line 521, in __next__
+    data = self._next_data()
+  File "/usr/local/lib/python3.7/dist-packages/torch/utils/data/dataloader.py", line 1186, in _next_data
+    idx, data = self._get_data()
+  File "/usr/local/lib/python3.7/dist-packages/torch/utils/data/dataloader.py", line 1142, in _get_data
+    success, data = self._try_get_data()
+  File "/usr/local/lib/python3.7/dist-packages/torch/utils/data/dataloader.py", line 990, in _try_get_data
+    data = self._data_queue.get(timeout=timeout)
+  File "/usr/lib/python3.7/queue.py", line 179, in get
+    self.not_empty.wait(remaining)
+  File "/usr/lib/python3.7/threading.py", line 300, in wait
+    gotit = waiter.acquire(True, timeout)
+KeyboardInterrupt
+63

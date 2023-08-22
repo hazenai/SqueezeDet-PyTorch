@@ -32,7 +32,11 @@ NUM_EPOCHS = cfg.num_epochs                                 # total epochs
 # EVAL_EPOCHS = 1                                 # after how many epoch to perform evaluation
 # WARMUP_EPOCHS = 0                               # for training visibility head alone in the beginning
 NUM_WORKERS = cfg.num_workers                                 # number of cpu workers in dataloader
+<<<<<<< HEAD
 LOG_WANDB = not(cfg.no_log_wandb)                      # log data to wandb.ai or not
+=======
+LOG_WANDB = True                                # log data to wandb.ai or not
+>>>>>>> c58da116da66b314a66316ed9fa1ca867ee1e1a6
 WANDB_ID = wandb.util.generate_id()             # ID for current wandb run (could use older id to resume)
 # KEYPOINTS_COUNT = len(KEYPOINT_MAPPING)         # number of keypoints for training
 # device to use, works for single and multiple gpus as well
