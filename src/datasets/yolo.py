@@ -203,6 +203,8 @@ class YOLO(BaseDataset):
     
     
     def applyImageAugmentations(self, image, boxes, imageMeta):
+        if image.shape[0] < 32 or image.shape[1] < 32:
+            return image, boxes
         bbs = BoundingBoxesOnImage(
             [BoundingBox(x1=bx[0], y1=bx[1], x2=bx[2], y2=bx[3]) for bx in boxes], 
             shape=image.shape)
