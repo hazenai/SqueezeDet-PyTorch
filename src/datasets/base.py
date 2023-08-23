@@ -89,20 +89,7 @@ class BaseDataset(torch.utils.data.Dataset):
             ],random_order=True)
         elif cfg.dataset=='yolo':
             self.seq = iaa.Sequential([
-            # Perspective/Affine
-            iaa.Sometimes(
-                p=0.3,
-                then_list=iaa.OneOf([
-                        # iaa.Affine(
-                        #         # translate_percent={"x":(-0.1,0.1),"y":(-0.1,0.1)},            
-                        #         scale=(0.7, 1.7),
-                        #         # rotate=(-5, 5), # assuming that the rotation is handeled while synthetic data generation
-                        #         shear=(-1, 1),
-                        #         keep_size=False,
-                        #     ),
-                        iaa.PerspectiveTransform(scale=(0.02, 0.125), keep_size=False),
-                    ])
-            ),
+            
             # epoch time increases x2
             # iaa.Sometimes(
             #     0.1,
@@ -123,9 +110,6 @@ class BaseDataset(torch.utils.data.Dataset):
             iaa.Sometimes(
                 0.2,
                 iaa.OneOf([
-                    # iaa.imgcorruptlike.JpegCompression(severity=2),
-                    # iaa.imgcorruptlike.JpegCompression(severity=1),
-                    iaa.imgcorruptlike.Pixelate(severity=2),
                     iaa.MultiplyElementwise((0.5, 1.5), per_channel=0.5),
                 ])
                 
@@ -149,9 +133,13 @@ class BaseDataset(torch.utils.data.Dataset):
                 ])
             ),
             iaa.Sometimes(
-                0.05,
+                0.1,
                 iaa.OneOf([
+                    iaa.imgcorruptlike.JpegCompression(severity=2),
+                    iaa.imgcorruptlike.JpegCompression(severity=1),
+                    iaa.imgcorruptlike.Pixelate(severity=2),
                     iaa.CropAndPad(percent=(-0.3, 0.3), pad_mode=ia.ALL, keep_size=False),
+                    iaa.PerspectiveTransform(scale=(0.02, 0.125), keep_size=False),
                 ])
             ),
 

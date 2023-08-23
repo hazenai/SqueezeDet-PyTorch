@@ -819,10 +819,10 @@ int32_t main (int32_t argc,char *argv[]) {
   mail->msg("Thank you for participating in our evaluation!");
 
   if (evalutae_groundTruth_format_xy){
-    mail->msg("Thank you for participating in our evaluation!");  
+    mail->msg("Ground Truths are in loaded in format xy");  
   }
   else{
-    mail->msg("Thank you for participating in our evaluation!");
+    mail->msg("Ground Truths are in loaded in format yx");
   }
 
   

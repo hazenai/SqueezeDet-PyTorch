@@ -279,7 +279,7 @@ class YOLO(BaseDataset):
                                       self.sample_set_path,
                                       self.results_dir,
                                       len(self.sample_ids),
-                                      self.cfg.val_data_format_xy)
+                                      str(int(self.cfg.val_data_format_xy)))
 
         status = subprocess.call(cmd, shell=True)
 

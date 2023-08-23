@@ -4,7 +4,7 @@ from collections import Counter
 import os
 from tqdm import tqdm
 
-gtFromatYX = True
+gtFromatYX = False
 print('-'*20)
 if gtFromatYX:
     print("Ground Truths are in format y1x1y2x2")
@@ -15,8 +15,8 @@ print('-'*20)
 # Change below paths to compute mAP for different boxes according to your requirements
 # /workspace/SqueezeDet-PyTorch_simple_bypass/exp/Experiments_Record_4.0+_data/Training_0.4_synth_4.210_240k_debug_val_split_90-10
 base_path = '/workspace/SqueezeDet-PyTorch_simple_bypass'
-experimentNamePath = "evaluate_4.210.1_30k_training"
-gt_boxes_path = os.path.join(base_path, 'data/kitti/training/synth_4.210/label_2')
+experimentNamePath = "Testing_Best_0.4_Subset_realLp_Boxsize_Area_thresh_8000"
+gt_boxes_path = os.path.join(base_path, 'data/kitti/training/realLpData_1.0/label_2')
 pred_boxes_path = os.path.join(base_path, 'exp/', experimentNamePath,'results/data')
 gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/', experimentNamePath, 'results/data'))
 gtImageIdsPath = [imgId[:-4] for imgId in gtImageIdsPath]
