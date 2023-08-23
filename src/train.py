@@ -51,7 +51,7 @@ def train(cfg):
                                                num_workers=cfg.num_workers,
                                                pin_memory=True,
                                                shuffle=True,
-                                               drop_last=False,
+                                               drop_last=True,
                                                 # persistent_workers=True,
                                                 prefetch_factor=4)
 
