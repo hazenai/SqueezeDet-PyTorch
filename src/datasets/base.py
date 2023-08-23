@@ -123,8 +123,8 @@ class BaseDataset(torch.utils.data.Dataset):
             iaa.Sometimes(
                 0.2,
                 iaa.OneOf([
-                    iaa.imgcorruptlike.JpegCompression(severity=2),
-                    iaa.imgcorruptlike.JpegCompression(severity=1),
+                    # iaa.imgcorruptlike.JpegCompression(severity=2),
+                    # iaa.imgcorruptlike.JpegCompression(severity=1),
                     iaa.imgcorruptlike.Pixelate(severity=2),
                     iaa.MultiplyElementwise((0.5, 1.5), per_channel=0.5),
                 ])
