@@ -138,7 +138,7 @@ class BaseDataset(torch.utils.data.Dataset):
                     iaa.imgcorruptlike.JpegCompression(severity=2),
                     iaa.imgcorruptlike.JpegCompression(severity=1),
                     iaa.imgcorruptlike.Pixelate(severity=2),
-                    iaa.CropAndPad(percent=(-0.3, 0.3), pad_mode=ia.ALL, keep_size=False),
+                    iaa.CropAndPad(percent=(-0.1, 0.1), pad_mode=ia.ALL, keep_size=False),
                     iaa.PerspectiveTransform(scale=(0.02, 0.125), keep_size=False),
                 ])
             ),

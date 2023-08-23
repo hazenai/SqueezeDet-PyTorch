@@ -15,7 +15,7 @@ print('-'*20)
 # Change below paths to compute mAP for different boxes according to your requirements
 # /workspace/SqueezeDet-PyTorch_simple_bypass/exp/Experiments_Record_4.0+_data/Training_0.4_synth_4.210_240k_debug_val_split_90-10
 base_path = '/workspace/SqueezeDet-PyTorch_simple_bypass'
-experimentNamePath = "Testing_Best_0.4_Subset_realLp_Boxsize_Area_thresh_8000"
+experimentNamePath = "temp_testing"
 gt_boxes_path = os.path.join(base_path, 'data/kitti/training/realLpData_1.0/label_2')
 pred_boxes_path = os.path.join(base_path, 'exp/', experimentNamePath,'results/data')
 gtImageIdsPath = os.listdir(os.path.join(base_path, 'exp/', experimentNamePath, 'results/data'))
