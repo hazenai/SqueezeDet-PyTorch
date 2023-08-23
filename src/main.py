@@ -21,7 +21,7 @@ init_env(cfg)
 # .common` script
 
 EXPERIMENT_NAME = cfg.exp_id    # name of the experiment
-SEED = 41                                       # seed for seeding all libraries and samplers
+SEED = cfg.seed                                       # seed for seeding all libraries and samplers
 BATCH_SIZE = cfg.batch_size                                 # mini-batch size for training
 # SHUFFLE = True                                  # should dataloaders shuffle the data
 LR = cfg.lr                                       # starting learning rate
