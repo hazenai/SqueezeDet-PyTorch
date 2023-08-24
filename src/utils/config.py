@@ -13,7 +13,7 @@ class Config(object):
                                  help='coco | kitti | yolo | lpr' )
         self.parser.add_argument('--load_model', default='/workspace/SqueezeDet-PyTorch_simple_bypass/models/model_Best_synth_4.210_id_0.4.pth',                      
                                  help='path to pre-trained model')
-        self.parser.add_argument('--debug', type=int, default=2,
+        self.parser.add_argument('--debug', type=int, default=0,
                                  help='0: show nothing\n'
                                       '1: visualize pre-processed image and boxes\n'
                                       '2: visualize detections.')
